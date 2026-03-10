@@ -1,6 +1,6 @@
 interface Env {
   CONTENT: KVNamespace
-  ADMIN_PASSWORD: string
+  SESSION_SECRET: string
 }
 
 const CONTENT_KEY = 'site-content'
@@ -31,7 +31,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   }
 
   const token = authHeader.slice(7)
-  const valid = await verifyToken(token, context.env.ADMIN_PASSWORD)
+  const valid = await verifyToken(token, context.env.SESSION_SECRET)
 
   if (!valid) {
     return new Response(JSON.stringify({ error: 'Invalid token' }), {
@@ -59,18 +59,23 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   })
 }
 
-async function verifyToken(token: string, password: string): Promise<boolean> {
-  // Token format: base64(timestamp:hmac)
+async function verifyToken(token: string, secret: string): Promise<boolean> {
+  // Token format: base64(timestamp:email:hmac)
   try {
     const decoded = atob(token)
-    const [timestampStr, signature] = decoded.split(':')
+    const parts = decoded.split(':')
+    if (parts.length < 3) return false
+
+    const signature = parts.pop()!
+    const payload = parts.join(':') // timestamp:email
+    const timestampStr = parts[0]
     const timestamp = parseInt(timestampStr, 10)
 
     // Tokens expire after 24 hours
     const now = Date.now()
     if (now - timestamp > 24 * 60 * 60 * 1000) return false
 
-    const expected = await createHmac(timestampStr, password)
+    const expected = await createHmac(payload, secret)
     return signature === expected
   } catch {
     return false

@@ -9,7 +9,7 @@ import { AboutEditor } from '../components/admin/AboutEditor'
 import { FooterEditor } from '../components/admin/FooterEditor'
 
 export function Admin() {
-  const { token, error, loading, login, logout, isAuthenticated } = useAdminAuth()
+  const { token, error, loading, loginWithGoogle, logout, isAuthenticated } = useAdminAuth()
   const [content, setContent] = useState<SiteContent | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
@@ -71,7 +71,7 @@ export function Admin() {
   }
 
   if (!isAuthenticated) {
-    return <LoginForm onLogin={login} error={error} loading={loading} />
+    return <LoginForm onLogin={loginWithGoogle} error={error} loading={loading} />
   }
 
   if (!content) {
