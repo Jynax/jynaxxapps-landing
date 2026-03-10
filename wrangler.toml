@@ -1,0 +1,10 @@
+# Cloudflare Pages configuration
+# KV binding and env vars are set via CF API/dashboard
+# This file is for local dev reference with `wrangler pages dev`
+
+name = "jynaxxapps-landing"
+compatibility_date = "2026-03-09"
+
+[[kv_namespaces]]
+binding = "CONTENT"
+id = "52321e5c82d348cc8afcf652f07496e7"

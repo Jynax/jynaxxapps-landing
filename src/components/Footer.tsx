@@ -1,23 +1,16 @@
-export function Footer() {
+import type { SiteContent } from '../types/content'
+
+export function Footer({ footer }: { footer: SiteContent['footer'] }) {
   return (
     <footer className="footer">
       <div className="footer-links">
-        <a href="https://bsky.app/profile/mrchartrand.bsky.social" target="_blank" rel="noopener noreferrer">
-          Bluesky
-        </a>
-        <a href="https://www.linkedin.com/in/michaelchartrand/" target="_blank" rel="noopener noreferrer">
-          LinkedIn
-        </a>
-        <a href="mailto:jynaxx@gmail.com">
-          Email
-        </a>
+        {footer.links.map(link => (
+          <a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer">
+            {link.label}
+          </a>
+        ))}
       </div>
-      <p className="footer-note">
-        Built by a human with AI. Tracked in{' '}
-        <a href="https://meta.jynaxxapps.com" target="_blank" rel="noopener noreferrer">
-          Meta Tracker
-        </a>.
-      </p>
+      <p className="footer-note" dangerouslySetInnerHTML={{ __html: footer.note }} />
     </footer>
   )
 }
