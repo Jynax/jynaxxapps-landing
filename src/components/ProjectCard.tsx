@@ -1,6 +1,6 @@
-import type { Project } from '../data/projects'
+import type { ProjectContent } from '../types/content'
 
-export function ProjectCard({ project }: { project: Project }) {
+export function ProjectCard({ project }: { project: ProjectContent }) {
   const isComingSoon = project.status === 'coming-soon'
 
   const card = (
