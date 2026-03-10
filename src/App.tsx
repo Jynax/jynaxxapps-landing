@@ -4,11 +4,14 @@ import { Hero } from './components/Hero'
 import { ProjectShowcase } from './components/ProjectShowcase'
 import { About } from './components/About'
 import { Footer } from './components/Footer'
+import { Admin } from './pages/Admin'
 import { useContent } from './hooks/useContent'
+import { useHashRoute } from './hooks/useHashRoute'
 import './styles/theme.css'
+import './styles/admin.css'
 import './App.css'
 
-function AppContent() {
+function Site() {
   const { content } = useContent()
 
   return (
@@ -27,9 +30,12 @@ function AppContent() {
 }
 
 function App() {
+  const route = useHashRoute()
+  const isAdmin = route === '#/admin'
+
   return (
     <ThemeProvider>
-      <AppContent />
+      {isAdmin ? <Admin /> : <Site />}
     </ThemeProvider>
   )
 }
