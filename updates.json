@@ -1,1 +1,12 @@
-[]
+[
+  { "date": "2026-03-31", "project": "Meta Tracker", "projectUrl": "https://meta.jynaxxapps.com", "category": "new", "title": "Automated changelog system powered by PR descriptions" },
+  { "date": "2026-03-31", "project": "Meta Tracker", "projectUrl": "https://meta.jynaxxapps.com", "category": "improved", "title": "InsightsView readability pass — larger fonts, wider labels, clickable sources" },
+  { "date": "2026-03-31", "project": "Buried in Print", "projectUrl": "https://bip.jynaxxapps.com", "category": "updated", "title": "Shared design tokens — Inter font, consistent card radius and shadows" },
+  { "date": "2026-03-31", "project": "Note Worthy", "projectUrl": "https://noteworthy.jynaxxapps.com", "category": "updated", "title": "Shared design tokens — Inter font, consistent styling" },
+  { "date": "2026-03-31", "project": "On The Move", "projectUrl": "https://otm.jynaxxapps.com", "category": "updated", "title": "Shared design tokens — Inter font, consistent styling" },
+  { "date": "2026-03-31", "project": "Item-B-Gone", "projectUrl": "https://ibg.jynaxxapps.com", "category": "updated", "title": "Shared design tokens — Inter font, consistent styling" },
+  { "date": "2026-03-30", "project": "Meta Tracker", "projectUrl": "https://meta.jynaxxapps.com", "category": "new", "title": "InsightsView redesign — five narrative chapters with evidence-backed data" },
+  { "date": "2026-03-29", "project": "Meta Tracker", "projectUrl": "https://meta.jynaxxapps.com", "category": "new", "title": "Cross-project insights — portfolio-wide analytics" },
+  { "date": "2026-03-28", "project": "On The Move", "projectUrl": "https://otm.jynaxxapps.com", "category": "new", "title": "Unified PDF import — single upload with Workers AI parsing" },
+  { "date": "2026-03-23", "project": "Note Worthy", "projectUrl": "https://noteworthy.jynaxxapps.com", "category": "new", "title": "OMR comparison tool — side-by-side original vs processed with inline annotations" }
+]
