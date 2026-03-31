@@ -2,6 +2,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { ThemePicker } from './components/ThemePicker'
 import { Hero } from './components/Hero'
 import { ProjectShowcase } from './components/ProjectShowcase'
+import { RecentUpdates } from './components/RecentUpdates'
 import { About } from './components/About'
 import { Footer } from './components/Footer'
 import { Admin } from './pages/Admin'
@@ -22,6 +23,7 @@ function Site() {
       <main>
         <Hero hero={content.hero} />
         <ProjectShowcase projects={content.projects} />
+        <RecentUpdates />
         <About about={content.about} />
       </main>
       <Footer footer={content.footer} />
