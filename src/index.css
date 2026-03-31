@@ -1,3 +1,6 @@
+@import 'jynaxxapps-tokens/tokens.css';
+@import '@fontsource-variable/inter/index.css';
+
 :root {
   /* Base dark theme */
   --color-bg: #0f0f13;
@@ -7,7 +10,7 @@
   --color-accent: #7c6aef;
   --color-accent-hover: #9585f5;
 
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--jx-font-family);
   line-height: 1.6;
   font-weight: 400;
   color: var(--color-text);
