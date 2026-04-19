@@ -1,5 +1,12 @@
 [
   {
+    "date": "2026-04-19",
+    "project": "Meta Tracker",
+    "projectUrl": "https://meta.jynaxxapps.com",
+    "category": "improved",
+    "title": "Hover tooltips across the app now follow the cursor and persist through keypresses — no more native browser tooltips dismissing on arrow keys"
+  },
+  {
     "date": "2026-04-18",
     "project": "Meta Tracker",
     "projectUrl": "https://meta.jynaxxapps.com",
