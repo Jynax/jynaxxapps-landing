@@ -10,6 +10,10 @@ import {
   JX_FOOTER,
 } from '../data/jxData';
 
+function isExternal(href: string): boolean {
+  return href.startsWith('https://') || href.startsWith('http://')
+}
+
 interface ParkedStubProps {
   directionId: 'journal' | 'arcade';
   bg: string;
@@ -29,8 +33,6 @@ export function ParkedStub({
   wordmarkFont,
   wordmarkStyle,
 }: ParkedStubProps) {
-  const isExternal = (href: string) => href.startsWith('https://') || href.startsWith('http://');
-
   return (
     <section
       data-direction={directionId}
