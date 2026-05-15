@@ -1,3 +1,4 @@
+import './data/jxData'
 import { ThemeProvider } from './context/ThemeContext'
 import { ThemePicker } from './components/ThemePicker'
 import { Hero } from './components/Hero'
