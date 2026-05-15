@@ -1,4 +1,4 @@
-// SOURCE: static register for v1 (open-decisions item 2 sanctions stubbing KV). Swap to KV-backed register when an admin editor exists — out of scope for scaffold.
+// v1 SOURCE OF TRUTH: directions read this static register (open-decisions item 2 sanctions stubbing KV). SiteContent.register?/manifesto?/now?/contact?/footer2? exist so KV CAN back this shape later when an admin editor is built — out of scope for this scaffold.
 
 declare global {
   interface Window {
