@@ -7,7 +7,8 @@ function isBenign(text: string): boolean {
   return (
     text.includes('accounts.google.com') ||
     text.includes('gsi/client') ||
-    text.includes('Failed to load resource') ||
+    // only Google Identity (GIS) resource failures are benign; an app-origin resource failure must fail the test
+    (text.includes('Failed to load resource') && (text.includes('accounts.google.com') || text.includes('gsi/') || text.includes('apis.google.com'))) ||
     text.includes('Download the React DevTools')
   );
 }
@@ -25,8 +26,7 @@ test.describe('Data Integrity', () => {
 
       await page.goto(`/#${dir}`);
       await expect(page.locator(`[data-direction="${dir}"]`)).toBeVisible();
-      // Give lazy chunk + effects a beat to surface any runtime error.
-      await expect(page.locator(`[data-direction="${dir}"]`)).toBeVisible();
+      await page.waitForTimeout(300); // explicit settle: let async effects + lazy chunks flush so late console/pageerror is captured before asserting
 
       expect(errors, errors.join('\n')).toHaveLength(0);
     });

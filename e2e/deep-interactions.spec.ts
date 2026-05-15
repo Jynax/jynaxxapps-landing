@@ -15,7 +15,7 @@ test.describe('Deep Interactions', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto('/#terminal');
 
-    const copyBtn = page.locator('header button[title="Copy shareable link"]');
+    const copyBtn = page.locator('button[title="Copy shareable link"]');
     await expect(copyBtn).toBeVisible();
     await copyBtn.click();
     await expect(copyBtn).toHaveText(/✓ LINK COPIED/);
