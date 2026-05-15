@@ -12,12 +12,19 @@ test('design tokens are available on :root', async ({ page }) => {
   expect(conCyan).toBe('#6CE0D4');
 });
 
-test('a Tailwind utility class applies', async ({ page }) => {
+test('Tailwind preflight is active (unstyled h1 inherits font-size)', async ({ page }) => {
   await page.goto('/#terminal');
-  await page.setContent('<div class="hidden" id="t">x</div>');
-  const display = await page.evaluate(() => {
-    const el = document.getElementById('t')!;
-    return getComputedStyle(el).display;
+  const fontSize = await page.evaluate(() => {
+    const h = document.createElement('h1');
+    h.textContent = 'x';
+    document.body.appendChild(h);
+    const fs = getComputedStyle(h).fontSize;
+    h.remove();
+    return fs;
   });
-  expect(display).toBe('none');
+  // Browser default for an <h1> is 2em (32px). Tailwind v4 Preflight (always
+  // emitted by `@import "tailwindcss"`, no JIT scan needed) resets headings to
+  // `font-size: inherit`, so it inherits the 16px body size. This is a reliable
+  // runtime signal that Tailwind is wired in, independent of JIT class scanning.
+  expect(fontSize).toBe('16px');
 });
