@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { CornerFrame } from '../parts/CornerFrame'
 import { CON } from './accents'
 
@@ -20,7 +21,7 @@ function ConsoleButton({
 }: {
   primary?: boolean
   onClick: () => void
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <button

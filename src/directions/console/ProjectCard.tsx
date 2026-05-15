@@ -3,6 +3,7 @@ import type { Project } from '../../data/jxData'
 import { JX_STATUS } from '../../data/jxData'
 import { ProjectArt } from '../ProjectArt'
 import { CON } from './accents'
+import { CONSOLE_FOCUS_STYLE, DossierMeta } from './shared'
 
 // Section 4 — Manifest project card (the most important component).
 // Structure top→bottom: 180px screen (ProjectArt) / metadata strip /
@@ -18,37 +19,12 @@ import { CON } from './accents'
 const mono = { fontFamily: 'var(--font-mono)' }
 const display = { fontFamily: 'var(--font-display)', fontWeight: 700 }
 
-// Module-scope focus ring (spec 187: no outline:none without a replacement).
-// Same injection pattern as Console.tsx's <style> keyframes block. Keyboard-
-// only via :focus-visible; does not affect hover/open border styles.
-const FOCUS_STYLE = `.jx-con-toggle:focus-visible{outline:2px solid var(--con-cyan);outline-offset:2px}`
-
 interface ProjectCardProps {
   project: Project
   /** Resolved hex accent for this card (from CARD_ACCENTS rotation). */
   accent: string
   isOpen: boolean
   onToggle: () => void
-}
-
-function DossierMeta({ k, v }: { k: string; v: string }) {
-  return (
-    <div>
-      <div
-        style={{
-          ...mono,
-          fontSize: 9,
-          color: CON.dim,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          marginBottom: 4,
-        }}
-      >
-        {k}
-      </div>
-      <div style={{ ...mono, fontSize: 12, color: CON.ink }}>{v}</div>
-    </div>
-  )
 }
 
 export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: ProjectCardProps) {
@@ -76,7 +52,7 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
         boxShadow: isOpen ? `0 0 0 1px ${c}, 0 8px 32px ${c}22` : 'none',
       }}
     >
-      <style>{FOCUS_STYLE}</style>
+      <style>{CONSOLE_FOCUS_STYLE}</style>
 
       {/* Toggle overlay — covers the full card surface, owns the click/keyboard
           affordance, contains no interactive children. The Launch <a> below

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Project } from '../../data/jxData'
 import { JX_STATUS } from '../../data/jxData'
 import { CON } from './accents'
+import { CONSOLE_FOCUS_STYLE, DossierMeta } from './shared'
 
 // Section 5 — Workbench row (table-style, denser).
 // Grid: [64px chip][200px name+slug][1fr brief][160px status][120px touched].
@@ -11,37 +12,12 @@ import { CON } from './accents'
 const mono = { fontFamily: 'var(--font-mono)' }
 const display = { fontFamily: 'var(--font-display)', fontWeight: 700 }
 
-// Module-scope focus ring (spec 187: no outline:none without a replacement).
-// Same injection pattern as Console.tsx's <style> block. Keyboard-only via
-// :focus-visible; does not affect the row's hover/open background styles.
-const FOCUS_STYLE = `.jx-con-row:focus-visible{outline:2px solid var(--con-cyan);outline-offset:2px}`
-
 interface WorkbenchRowProps {
   project: Project
   isOpen: boolean
   /** Render a bottom divider when not the last row and not open. */
   divider: boolean
   onToggle: () => void
-}
-
-function DossierMeta({ k, v }: { k: string; v: string }) {
-  return (
-    <div>
-      <div
-        style={{
-          ...mono,
-          fontSize: 9,
-          color: CON.dim,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          marginBottom: 4,
-        }}
-      >
-        {k}
-      </div>
-      <div style={{ ...mono, fontSize: 12, color: CON.ink }}>{v}</div>
-    </div>
-  )
 }
 
 export function WorkbenchRow({ project: p, isOpen, divider, onToggle }: WorkbenchRowProps) {
@@ -53,7 +29,7 @@ export function WorkbenchRow({ project: p, isOpen, divider, onToggle }: Workbenc
 
   return (
     <div data-workbench-row>
-      <style>{FOCUS_STYLE}</style>
+      <style>{CONSOLE_FOCUS_STYLE}</style>
       <button
         type="button"
         className="jx-con-row"

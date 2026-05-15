@@ -177,6 +177,7 @@ export default function Console() {
               gap: 14,
             }}
           >
+            {/* static frozen order — index key is safe */}
             {JX_MANIFESTO.map((m, i) => (
               <DirectiveCard
                 key={i}
