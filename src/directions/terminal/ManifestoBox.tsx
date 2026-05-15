@@ -1,8 +1,11 @@
 import { JX_MANIFESTO } from '../../data/jxData'
 import { Prompt } from '../parts/Prompt'
 
-// RECONCILE: confirm exact box width / glyph set vs directions/terminal.jsx if it
-// becomes available. Spec mandates ╔═╗║╚═╝ and .padEnd(48); both honored here.
+// Reconciled against canonical terminal.jsx: same box-drawing glyph set
+// (╔═╗║╚═╝) and the same .padEnd(48) right-border alignment for the 5
+// JX_MANIFESTO rules. MINOR DELIBERATE DEVIATION (reviewed, out of this
+// reconciliation's boot-log/help content scope; flagged for PR open-items):
+// canonical prints each rule bare; we prefix `1.`–`5.` numbering. Kept as-is.
 
 /**
  * Block 9 — `cat manifesto.txt` boxed ASCII manifesto.

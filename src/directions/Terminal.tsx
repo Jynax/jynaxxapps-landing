@@ -1,7 +1,8 @@
-// RECONCILE: confirm exact micro-structure (boot-line wording, help command list,
-// footer string) vs directions/terminal.jsx if it becomes available. The reference
-// impl referenced by design-spec-terminal.md (`directions/terminal.jsx`) is not in
-// this repo; structure below follows the spec's "Page structure (top to bottom)".
+// Reconciled against the canonical reference impl (handoff/reference/directions/
+// terminal.jsx) and design-spec-terminal.md "Page structure (top to bottom)".
+// Boot-log content and the `help` command list below are reproduced faithfully
+// from terminal.jsx. The 12-section structure / semantic HTML / reduced-motion /
+// data-from-jxData were spec-reviewed and approved and are intentionally kept.
 
 import { JX_PROJECTS, JX_NOW, JX_FOOTER } from '../data/jxData'
 import { Prompt } from './parts/Prompt'
@@ -16,28 +17,46 @@ import { ContactBlock } from './terminal/ContactBlock'
 import { CursorPrompt } from './terminal/CursorPrompt'
 
 /**
- * Block 3 — boot log. Exactly 7 POST-style self-test lines, streamed in via
- * useBootStream(7) (first at 200ms, +80ms each; all-immediate under
- * reduced-motion). One WARN allowed per the spec example. The LAST line reads
- * exactly `ready. type help for commands.` with status OK.
+ * Block 3 — boot log. The 7 vintage POST self-test lines below are reproduced
+ * faithfully from canonical terminal.jsx `BOOT_LINES` (exact labels, results,
+ * and OK/WARN statuses, one WARN: caffeine.service). Canonical bakes the
+ * dot-leaders into each string and prints them verbatim (its own `BootLine`
+ * applies no padding), so we bake them here too — every line is normalised to
+ * a fixed 52-char column so all results right-align (the vintage POST look the
+ * spec calls for; canonical's own dot counts vary 47–51, we tighten them to a
+ * single column). 52 ≥ the shared `BootLine`'s 48-char pad threshold, so the
+ * shared part passes these strings through verbatim — NO double-padding.
+ *
+ * Canonical renders `ready. type help for commands.` as a separate non-streamed
+ * element AFTER its 7 BOOT_LINES; our approved architecture keeps every boot row
+ * in one streamed array (each row carries `data-bootline`), so that mandated
+ * final line is entry 8 here. useBootStream(BOOT_LINES.length) streams all 8
+ * (first at 200ms, +80ms each; all-immediate under reduced-motion).
  */
 const BOOT_LINES: { status: 'OK' | 'WARN' | 'FAIL'; text: string }[] = [
-  { status: 'OK',   text: 'POST self-test' },
-  { status: 'OK',   text: 'phosphor display calibrated' },
-  { status: 'OK',   text: 'amber lookup table loaded' },
-  { status: 'WARN', text: 'coffee reservoir running low' },
-  { status: 'OK',   text: 'project register mounted' },
-  { status: 'OK',   text: 'curiosity daemon online' },
+  { status: 'OK',   text: 'POST self-test .............................. passed' },
+  { status: 'OK',   text: 'load /etc/jynaxx/identity ....................... ok' },
+  { status: 'OK',   text: 'mount /workshop ................................. ok' },
+  { status: 'WARN', text: 'caffeine.service .............................. high' },
+  { status: 'OK',   text: 'sync with claude@anthropic ...................... ok' },
+  { status: 'OK',   text: 'attach 11 projects .............................. ok' },
+  { status: 'OK',   text: 'restoring last session [remnants] ............... ok' },
   { status: 'OK',   text: 'ready. type help for commands.' },
 ]
 
-/** Block 4 — the 5 available commands `help` lists (map to sections below). */
+/**
+ * Block 4 — the commands `help` lists. Reproduced faithfully from canonical
+ * terminal.jsx's `help` block (commands + descriptions, in canonical order):
+ * about, now, ls, manifesto, contact. The spec's "5 commands" was approximate;
+ * canonical lists 5 (a single `ls` row, plus `contact` — which our prior list
+ * dropped). Every command maps to a section that exists below.
+ */
 const HELP_COMMANDS: { cmd: string; desc: string }[] = [
-  { cmd: 'about',          desc: 'who is jynaxx, and why this exists' },
-  { cmd: 'now',            desc: 'what i am obsessed with this week' },
-  { cmd: 'ls ~/apps',      desc: 'things that are live in the wild' },
-  { cmd: 'ls ~/workshop',  desc: 'things still on the bench' },
-  { cmd: 'manifesto',      desc: 'the five house rules' },
+  { cmd: 'about',     desc: 'who is jynaxx and why does this exist' },
+  { cmd: 'now',       desc: "what i'm obsessed with this week" },
+  { cmd: 'ls',        desc: 'list projects (click any row to read its dossier)' },
+  { cmd: 'manifesto', desc: 'the five rules' },
+  { cmd: 'contact',   desc: 'how to reach me' },
 ]
 
 const publicProjects = JX_PROJECTS.filter(p => p.group === 'public')

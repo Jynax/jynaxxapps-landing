@@ -1,9 +1,11 @@
-// RECONCILE: confirm exact micro-structure vs directions/terminal.jsx if it becomes available.
+// Reconciled against canonical terminal.jsx: the chrome strings below match
+// canonical's CRT top exactly (`JYNAXX-OS v2.6.0 / phosphor terminal` left,
+// `tty1 · 80×40 · ▮ amber` right). No outstanding deviation.
 
 /**
  * Block 1 — CRT chrome header.
  *
- * Per design-spec-terminal.md "Page structure" #1:
+ * Per design-spec-terminal.md "Page structure" #1 / canonical terminal.jsx:
  *   left  → `JYNAXX-OS v2.6.0 / phosphor terminal`
  *   right → `tty1 · 80×40 · ▮ amber`
  *

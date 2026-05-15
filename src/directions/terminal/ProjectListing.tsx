@@ -2,8 +2,13 @@ import { useState } from 'react'
 import type { Project } from '../../data/jxData'
 import { JX_STATUS } from '../../data/jxData'
 
-// RECONCILE: confirm exact dossier micro-layout & column widths vs
-// directions/terminal.jsx if it becomes available.
+// Reconciled against canonical terminal.jsx: the collapsed-row grid
+// (arrow / status / name+tag / touched / cat ./) and the green-outlined
+// dossier (// dossier · ./<id>/README.md title, blurb, 3-col started/stack/
+// address meta, "open ./<id>/ →" launch line) match canonical's layout and
+// instant (no-transition) reveal. Implemented as a semantic <button> per the
+// spec's a11y note (canonical uses div-onClick) — a sanctioned a11y upgrade,
+// not a visual deviation.
 
 interface ProjectRowProps {
   project: Project

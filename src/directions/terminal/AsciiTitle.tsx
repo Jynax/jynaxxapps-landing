@@ -1,6 +1,11 @@
-// RECONCILE: confirm exact drawn-letter glyph block vs directions/terminal.jsx if it
-// becomes available. The spec says "drawn-letter JYNAXX block"; this is text-only by
-// design, so a large VT323 stylized wordmark is the sanctioned stand-in.
+// DELIBERATE DEVIATION FROM CANONICAL — reviewed, kept on purpose.
+// Canonical terminal.jsx renders the JYNAXX wordmark as a literal multi-line
+// box-drawing glyph block (██╗██╗ … art) inside a <pre>. We instead render a
+// large VT323 web-font wordmark as the single <h1>. Why: our build is a
+// semantic/web-font React app — a baked ASCII-art <pre> is not a heading, hurts
+// a11y/SEO, breaks across narrow viewports, and depends on glyph metrics. The
+// VT323 wordmark preserves the drawn-letter terminal feel while staying a real
+// <h1>. The subtitle `// a workshop on the internet · MMXXVI` matches canonical.
 
 /**
  * Block 2 — ASCII title.

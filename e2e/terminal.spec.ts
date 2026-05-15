@@ -28,12 +28,14 @@ test.describe('Terminal', () => {
     await expect(page.locator('[data-project-row]')).toHaveCount(12);
   });
 
-  test('reduced-motion: all 7 boot lines render immediately, no streaming', async ({ browser }) => {
+  test('reduced-motion: all 8 boot lines render immediately, no streaming', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();
     await page.goto('/#terminal');
     // No animation wait: under reduced-motion the boot log is fully rendered at once.
-    await expect(page.locator('[data-bootline]')).toHaveCount(7);
+    // 8 = canonical terminal.jsx's 7 POST self-test lines + the mandated final
+    // `ready. type help for commands.` row (our architecture keeps it in-array).
+    await expect(page.locator('[data-bootline]')).toHaveCount(8);
     await context.close();
   });
 });

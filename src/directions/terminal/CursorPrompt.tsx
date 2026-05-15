@@ -1,7 +1,10 @@
 import { useReducedMotion } from '../parts/useReducedMotion'
 
-// RECONCILE: confirm exact resting prompt glyph vs directions/terminal.jsx if it
-// becomes available.
+// Reconciled against canonical terminal.jsx: canonical's resting prompt blinks a
+// single `█` on a 530ms period; we render `_█` blinking at the same 530ms. The
+// blink is CSS-keyframe only (canonical uses a JS setInterval) so we honour the
+// repo's no-setState-in-effect lint and reduced-motion — a sanctioned mechanism
+// change, same visual. No outstanding content deviation.
 
 /**
  * Block 11 — live blinking cursor prompt.

@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { Prompt } from '../parts/Prompt'
 
-// RECONCILE: confirm exact bio prose & expand/collapse markup vs directions/terminal.jsx
-// if it becomes available. Bio below is composed ONLY from brand.md's defined Identity
-// ("By day… / By night…"), "Who it's for", and Voice notes (lowercase casual,
-// first-person, sarcastic edge). No biographical facts are invented beyond brand.md.
+// DELIBERATE DEVIATION FROM CANONICAL — reviewed, kept on purpose (out of this
+// reconciliation's content scope; flagged for PR open-items).
+// Canonical terminal.jsx's about.txt block names "michael chartrand" and uses
+// its own "by day / by night" prose. Our bio is composed ONLY from brand.md's
+// defined Identity, "Who it's for", and Voice notes (lowercase, first-person,
+// sarcastic) and intentionally omits the real name. The collapse/expand
+// mechanics (clamp ~110px → 1200px, .35s ease, dotted-underline toggle) match
+// canonical's behaviour; only the prose source differs and is left as-is here.
 
 /**
  * Block 5 — `cat ./about.txt` collapsible story block.

@@ -1,9 +1,11 @@
 import { JX_CONTACT } from '../../data/jxData'
 import { Prompt } from '../parts/Prompt'
 
-// RECONCILE: confirm exact contact row layout vs directions/terminal.jsx if it
-// becomes available. Hrefs come straight from JX_CONTACT (email→mailto:,
-// github/bluesky→https://, rss→/feed.xml) per spec Interactions table.
+// Reconciled against canonical terminal.jsx: same four contact rows in canonical
+// order (email / github / bluesky / rss). Canonical's entries are display-only
+// spans; per the spec Interactions table we wire real links from JX_CONTACT
+// (email→mailto:, github/bluesky→https:// with safe rel, rss→/feed.xml) — a
+// sanctioned functional upgrade, not a content deviation.
 
 /**
  * Block 10 — `contact`: Prompt + the 4 JX_CONTACT entries, wired.
