@@ -9,10 +9,17 @@ test('static register is the v1 source and is shape-valid', async ({ page }) => 
   expect(counts.total).toBe(12);
 });
 
-test('legacy content API endpoint still responds (admin unbroken)', async ({ request }) => {
-  // Pages Functions aren't served by `vite dev`; in dev this 404s at the SPA.
-  // We only assert the request resolves (no server crash) — true contract is
-  // covered by admin.spec.ts against a deployed environment.
-  const res = await request.get('/api/content').catch(() => null);
-  expect(res === null || typeof res.status === 'function').toBeTruthy();
+test('content API falls through to the SPA under vite dev (no 404, no crash)', async ({ request }) => {
+  // Cloudflare Pages Functions are NOT served by `vite dev`, so `/api/content`
+  // is not intercepted as an API route. Vite's SPA fallback serves index.html
+  // instead: observed status is 200 with an HTML body (NOT a 404, NOT JSON).
+  // This asserts the concrete dev-routing behavior so the test fails if that
+  // changes. The TRUE /api/content contract (real JSON payload from the Pages
+  // Function) is covered by admin.spec.ts against a deployed environment.
+  const res = await request.get('/api/content');
+  expect(res.status()).toBe(200);
+  const contentType = res.headers()['content-type'] ?? '';
+  expect(contentType).toContain('text/html');
+  const body = await res.text();
+  expect(body).toContain('<!doctype html');
 });

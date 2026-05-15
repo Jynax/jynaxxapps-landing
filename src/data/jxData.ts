@@ -1,36 +1,17 @@
 // v1 SOURCE OF TRUTH: directions read this static register (open-decisions item 2 sanctions stubbing KV). SiteContent.register?/manifesto?/now?/contact?/footer2? exist so KV CAN back this shape later when an admin editor is built — out of scope for this scaffold.
 
+import type { ProjectStatus, Project, ContactEntry } from '../types/jx';
+
+// Back-compat re-export: existing consumers `import type { Project | ProjectStatus
+// | ContactKind | ContactEntry } from '../data/jxData'` keep working unchanged.
+// The canonical source is `../types/jx` (correct dependency direction).
+export type { Project, ProjectStatus, ContactKind, ContactEntry } from '../types/jx';
+
 declare global {
   interface Window {
     __JX__?: { total: number; public: number; workshop: number };
   }
 }
-
-export type ProjectStatus =
-  | 'active'
-  | 'building'
-  | 'frozen'
-  | 'maintained'
-  | 'winding-down'
-  | 'shipped-private'
-  | 'research'
-  | 'sketch'
-  | 'soon';
-
-export type Project = {
-  id: string;
-  name: string;
-  slug: string;
-  tag: string;
-  blurb: string;
-  status: ProjectStatus;
-  stack: string[];
-  started: string;
-  touched: string;
-  href: string;
-  chapter: string;
-  group: 'public' | 'workshop';
-};
 
 // NOTE: the `frozen` label hardcodes Meta Tracker's `· v0.85` per the spec's reference-impl behavior.
 export const JX_STATUS: Record<ProjectStatus, { label: string; color: string }> = {
@@ -243,8 +224,7 @@ export const JX_NOW = {
   line: 'obsessed with telling software like a story. rewriting meta tracker’s decision graph. drinking too much coffee.',
 };
 
-export type ContactKind = 'email' | 'github' | 'bluesky' | 'rss';
-export const JX_CONTACT: { kind: ContactKind; label: string; value: string; href: string }[] = [
+export const JX_CONTACT: ContactEntry[] = [
   { kind: 'email',   label: 'email',   value: 'jynaxx@gmail.com',            href: 'mailto:jynaxx@gmail.com' },
   { kind: 'github',  label: 'github',  value: 'github.com/Jynax',             href: 'https://github.com/Jynax' },
   { kind: 'bluesky', label: 'bluesky', value: '@mrchartrand.bsky.social',     href: 'https://bsky.app/profile/mrchartrand.bsky.social' },

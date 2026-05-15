@@ -1,4 +1,4 @@
-import type { Project, ContactKind } from '../data/jxData'
+import type { Project, ContactEntry } from './jx'
 
 export interface SiteContent {
   hero: {
@@ -23,7 +23,7 @@ export interface SiteContent {
   register?: Project[]
   manifesto?: string[]
   now?: { line: string }
-  contact?: { kind: ContactKind; label: string; value: string; href: string }[]
+  contact?: ContactEntry[]
   footer2?: { copyright: string; built: string; made: string }
 }
 
