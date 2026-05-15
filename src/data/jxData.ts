@@ -214,7 +214,7 @@ export const JX_PROJECTS: Project[] = [
     name: 'Home Lab Consolidation',
     slug: 'infrastructure · self-hosted',
     tag: 'Evicting Big Tech from the house',
-    blurb: 'For years the family’s digital life has been smeared across six machines and two clouds, with an 8TB drive playing the role of “I’ll sort it later.” This is the un-smearing: pull every photo, manuscript and EPUB off OneDrive and Google, dedupe years of chaos, and land it on one home server the household actually owns. Proprietary apps swapped for FOSS, sync automated, nothing held hostage to a subscription.',
+    blurb: 'For years the family’s digital life has been smeared across six machines and two clouds, with an 8TB drive playing the role of "I’ll sort it later." This is the un-smearing: pull every photo, manuscript and EPUB off OneDrive and Google, dedupe years of chaos, and land it on one home server the household actually owns. Proprietary apps swapped for FOSS, sync automated, nothing held hostage to a subscription.',
     status: 'building',
     stack: ['Syncthing', 'Restic', 'Tailscale', 'Samba/SMB', 'Immich', 'Calibre-Web', 'n8n'],
     started: '2026-04',
