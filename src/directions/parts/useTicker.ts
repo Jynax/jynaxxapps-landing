@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from './useReducedMotion'
 
 /**
@@ -12,34 +12,28 @@ import { useReducedMotion } from './useReducedMotion'
  *
  * "Feels alive on reload without lying" — the value is anchored to real
  * elapsed time, not a fabricated absolute counter.
+ *
+ * Implementation note: the visible value is computed inside the setInterval
+ * callback (async — not synchronous in the effect body) and stored in state.
+ * The react-hooks/purity rule forbids Date.now() at render time; the
+ * react-hooks/set-state-in-effect rule forbids synchronous setState in the
+ * effect body. Both are satisfied here: Date.now() runs only in the async
+ * callback, and setState (setValue) is only called from that callback.
  */
 export function useTicker(seed: number, ratePerSec: number): number {
-  const reducedMotion = useReducedMotion()
-
-  // mountTime is captured inside the effect to avoid calling Date.now()
-  // at render time (impure function rule).
-  const mountTimeRef = useRef<number | null>(null)
-
-  // Initial state: seed. The interval will update it after first tick (~600ms).
+  const reduced = useReducedMotion()
+  const mountRef = useRef<number | null>(null)
   const [value, setValue] = useState<number>(seed)
 
   useEffect(() => {
-    if (reducedMotion) {
-      // Frozen: schedule a microtask so the setState lands in a callback,
-      // not synchronously in the effect body.
-      const t = setTimeout(() => setValue(seed), 0)
-      return () => clearTimeout(t)
-    }
-
-    mountTimeRef.current = Date.now()
-
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - (mountTimeRef.current ?? Date.now())
+    if (reduced) return // no interval, no setState — lint-clean
+    mountRef.current = Date.now()
+    const id = setInterval(() => {
+      const elapsed = Date.now() - (mountRef.current ?? Date.now())
       setValue(seed + Math.floor((elapsed * ratePerSec) / 1000))
     }, 600)
+    return () => clearInterval(id)
+  }, [reduced, seed, ratePerSec])
 
-    return () => clearInterval(interval)
-  }, [seed, ratePerSec, reducedMotion])
-
-  return value
+  return reduced ? seed : value
 }
