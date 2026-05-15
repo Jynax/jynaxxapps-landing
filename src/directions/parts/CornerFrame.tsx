@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 interface CornerFrameProps {
   children: ReactNode
 }
 
 /** Shared style for all four corner brackets. */
-const BRACKET_BASE: React.CSSProperties = {
+const BRACKET_BASE: CSSProperties = {
   position: 'absolute',
   width: 16,
   height: 16,
