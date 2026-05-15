@@ -1,5 +1,7 @@
-// RECONCILE: confirm `// subtitle  ····  meta` exact spacing vs console.jsx if it
-// becomes available. Currently using a CSS flex row with space-between.
+// Reconciled against canonical directions/console.jsx (provided in handoff). The reference
+// renders `// subtitle  ····  meta` as a single pre-formatted mono string. Here a CSS
+// flex row with space-between achieves the same visual result while remaining responsive —
+// intentional divergence reviewed against canonical and accepted.
 
 interface SectionHeaderProps {
   /** Zero-padded section number, e.g. "01", "02" */

@@ -1,4 +1,5 @@
-// RECONCILE: confirm exact micro-structure vs directions/terminal.jsx if it becomes available.
+// Reconciled against canonical directions/terminal.jsx (provided in handoff). Token split and
+// color mapping match the reference exactly: accent on username, dim chrome for @workshop/:~/$.
 
 interface PromptProps {
   /** The command text displayed after the prompt chrome (e.g. "cat ./about.txt") */

@@ -1,5 +1,5 @@
-// RECONCILE: dot-leader column width set to 48 chars (matching the spec's manifesto
-// padEnd(48) reference). Confirm exact column vs terminal.jsx in Task 5.
+// Reconciled against canonical directions/terminal.jsx (provided in handoff). Column width
+// of 48 chars matches terminal.jsx's padEnd(48) exactly — confirmed, no divergence.
 
 type BootStatus = 'OK' | 'WARN' | 'FAIL'
 
