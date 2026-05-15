@@ -43,6 +43,10 @@ export function ContactBlock() {
             </span>
             <a
               href={c.href}
+              aria-label={c.label}
+              {...(c.href.startsWith('https://')
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : {})}
               style={{
                 color: 'var(--term-fg-bright)',
                 textShadow: 'var(--term-glow)',

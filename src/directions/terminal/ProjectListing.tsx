@@ -174,6 +174,9 @@ function ProjectRow({ project }: ProjectRowProps) {
           {hasHref && (
             <a
               href={project.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open ${project.name}`}
               style={{
                 display: 'inline-block',
                 marginTop: 18,
@@ -202,8 +205,13 @@ interface ProjectListingProps {
  * Blocks 7 & 8 — a `Prompt` followed by an interactive listing of projects.
  */
 export function ProjectListing({ command, projects }: ProjectListingProps) {
+  const sectionLabel = command.includes('~/apps')
+    ? 'Apps'
+    : command.includes('~/workshop')
+      ? 'Workshop projects'
+      : command
   return (
-    <section aria-label={command}>
+    <section aria-label={sectionLabel}>
       <h2
         style={{
           margin: '0 0 14px',
