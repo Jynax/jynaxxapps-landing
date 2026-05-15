@@ -7,10 +7,21 @@ import { CON } from './accents'
 // Section 4 — Manifest project card (the most important component).
 // Structure top→bottom: 180px screen (ProjectArt) / metadata strip /
 // body (name/tag/blurb) / collapsible dossier / footer line.
-// Semantic: a real <button> wraps the clickable card (per spec a11y notes).
+//
+// Semantic: the card is an <article>. A single <button> overlay covers the
+// clickable surface (art + metadata + body + footer CTA) and owns the toggle;
+// it contains NO interactive children. The dossier (and its Launch <a>) render
+// as siblings of that button, inside the <article>, so we never nest an <a>
+// inside a <button> (invalid interactive content). The Launch link sits above
+// the overlay via z-index so it stays clickable without toggling.
 
 const mono = { fontFamily: 'var(--font-mono)' }
 const display = { fontFamily: 'var(--font-display)', fontWeight: 700 }
+
+// Module-scope focus ring (spec 187: no outline:none without a replacement).
+// Same injection pattern as Console.tsx's <style> keyframes block. Keyboard-
+// only via :focus-visible; does not affect hover/open border styles.
+const FOCUS_STYLE = `.jx-con-toggle:focus-visible{outline:2px solid var(--con-cyan);outline-offset:2px}`
 
 interface ProjectCardProps {
   project: Project
@@ -52,6 +63,8 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
   return (
     <article
       data-project-card
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         background: CON.bgAlt,
         border: `1px solid ${borderColor}`,
@@ -63,208 +76,214 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
         boxShadow: isOpen ? `0 0 0 1px ${c}, 0 8px 32px ${c}22` : 'none',
       }}
     >
+      <style>{FOCUS_STYLE}</style>
+
+      {/* Toggle overlay — covers the full card surface, owns the click/keyboard
+          affordance, contains no interactive children. The Launch <a> below
+          sits above this via z-index, so it stays clickable and is not nested
+          inside the button. */}
       <button
         type="button"
+        className="jx-con-toggle"
         onClick={onToggle}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
         aria-expanded={isOpen}
-        aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${p.name} dossier`}
+        aria-label={`${p.name} — details`}
         style={{
           all: 'unset',
-          display: 'flex',
-          flexDirection: 'column',
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
           cursor: 'pointer',
           boxSizing: 'border-box',
-          width: '100%',
+        }}
+      />
+
+      {/* Screen — vector illustration */}
+      <div
+        style={{
+          height: 180,
+          background: `linear-gradient(135deg, ${CON.bgRaise} 0%, ${CON.bg} 100%)`,
+          borderBottom: `1px solid ${CON.line}`,
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {/* Screen — vector illustration */}
-        <div
+        <ProjectArt id={p.id} accent={c} />
+      </div>
+
+      {/* Metadata strip */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '8px 22px',
+          background: `${CON.bgRaise}80`,
+          borderBottom: `1px solid ${CON.line}`,
+          ...mono,
+          fontSize: 10,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+        }}
+      >
+        <span style={{ color: CON.mid }}>
+          <span style={{ color: c }}>{p.chapter}</span> &nbsp;/&nbsp; {p.id}.app
+        </span>
+        <span style={{ color: status.color, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 99,
+              background: status.color,
+              boxShadow: `0 0 8px ${status.color}AA`,
+            }}
+          />
+          {status.label}
+        </span>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: '20px 22px 22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <h3
           style={{
-            height: 180,
-            background: `linear-gradient(135deg, ${CON.bgRaise} 0%, ${CON.bg} 100%)`,
-            borderBottom: `1px solid ${CON.line}`,
-            position: 'relative',
-            overflow: 'hidden',
+            ...display,
+            fontSize: 30,
+            fontWeight: 600,
+            margin: 0,
+            lineHeight: 1.05,
+            color: CON.ink,
+            letterSpacing: '-0.02em',
           }}
         >
-          <ProjectArt id={p.id} accent={c} />
+          {p.name}
+        </h3>
+        <div style={{ ...mono, fontSize: 12, color: c, marginTop: 6, letterSpacing: '0.04em' }}>
+          {p.tag}
         </div>
+        <p
+          style={{
+            fontSize: 14,
+            lineHeight: 1.55,
+            color: CON.mid,
+            margin: '14px 0 16px',
+            textWrap: 'pretty',
+            flex: 1,
+            fontFamily: 'var(--font-sans)',
+          }}
+        >
+          {p.blurb}
+        </p>
 
-        {/* Metadata strip */}
+        {/* Dossier — collapsed by default, instant reveal. Sibling of the
+            toggle button (not nested), with the Launch <a> raised above the
+            overlay so it is clickable and never inside the <button>. */}
+        {isOpen && (
+          <div data-card-dossier style={{ position: 'relative', zIndex: 2, marginBottom: 14 }}>
+            <div
+              style={{
+                padding: '16px 18px',
+                background: `${CON.bg}80`,
+                border: `1px solid ${c}33`,
+                position: 'relative',
+              }}
+            >
+              <div
+                style={{
+                  ...mono,
+                  fontSize: 10,
+                  color: c,
+                  letterSpacing: '0.2em',
+                  textTransform: 'uppercase',
+                  marginBottom: 12,
+                }}
+              >
+                ◆ dossier // {p.id}
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: 14,
+                  fontSize: 12,
+                }}
+              >
+                <DossierMeta k="started" v={p.started} />
+                <DossierMeta k="touched" v={p.touched} />
+                <DossierMeta k="address" v={p.slug} />
+                <DossierMeta k="stack" v={stackStr} />
+              </div>
+              {hasHref && (
+                <a
+                  href={p.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open ${p.name}`}
+                  style={{
+                    display: 'block',
+                    marginTop: 14,
+                    ...mono,
+                    fontSize: 11,
+                    color: CON.bg,
+                    background: c,
+                    padding: '8px 20px',
+                    textAlign: 'center',
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    textDecoration: 'none',
+                    clipPath:
+                      'polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%)',
+                  }}
+                >
+                  ▶ launch {p.slug}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Footer line */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '8px 22px',
-            background: `${CON.bgRaise}80`,
-            borderBottom: `1px solid ${CON.line}`,
-            ...mono,
-            fontSize: 10,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
+            alignItems: 'baseline',
+            paddingTop: 14,
+            borderTop: `1px dashed ${CON.line}`,
           }}
         >
-          <span style={{ color: CON.mid }}>
-            <span style={{ color: c }}>{p.chapter}</span> &nbsp;/&nbsp; {p.id}.app
-          </span>
-          <span style={{ color: status.color, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: 99,
-                background: status.color,
-                boxShadow: `0 0 8px ${status.color}AA`,
-              }}
-            />
-            {status.label}
-          </span>
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: '20px 22px 22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <h3
-            style={{
-              ...display,
-              fontSize: 30,
-              fontWeight: 600,
-              margin: 0,
-              lineHeight: 1.05,
-              color: CON.ink,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {p.name}
-          </h3>
-          <div style={{ ...mono, fontSize: 12, color: c, marginTop: 6, letterSpacing: '0.04em' }}>
-            {p.tag}
-          </div>
-          <p
-            style={{
-              fontSize: 14,
-              lineHeight: 1.55,
-              color: CON.mid,
-              margin: '14px 0 16px',
-              textWrap: 'pretty',
-              flex: 1,
-              fontFamily: 'var(--font-sans)',
-            }}
-          >
-            {p.blurb}
-          </p>
-
-          {/* Dossier — collapsed by default, instant reveal */}
-          {isOpen && (
-            <div data-card-dossier style={{ marginBottom: 14 }}>
-              <div
-                style={{
-                  padding: '16px 18px',
-                  background: `${CON.bg}80`,
-                  border: `1px solid ${c}33`,
-                  position: 'relative',
-                }}
-              >
-                <div
-                  style={{
-                    ...mono,
-                    fontSize: 10,
-                    color: c,
-                    letterSpacing: '0.2em',
-                    textTransform: 'uppercase',
-                    marginBottom: 12,
-                  }}
-                >
-                  ◆ dossier // {p.id}
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: 14,
-                    fontSize: 12,
-                  }}
-                >
-                  <DossierMeta k="started" v={p.started} />
-                  <DossierMeta k="touched" v={p.touched} />
-                  <DossierMeta k="address" v={p.slug} />
-                  <DossierMeta k="stack" v={stackStr} />
-                </div>
-                {hasHref && (
-                  <a
-                    href={p.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Open ${p.name}`}
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      display: 'block',
-                      marginTop: 14,
-                      ...mono,
-                      fontSize: 11,
-                      color: CON.bg,
-                      background: c,
-                      padding: '8px 20px',
-                      textAlign: 'center',
-                      letterSpacing: '0.14em',
-                      textTransform: 'uppercase',
-                      textDecoration: 'none',
-                      clipPath:
-                        'polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%)',
-                    }}
-                  >
-                    ▶ launch {p.slug}
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Footer line */}
           <div
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'baseline',
-              paddingTop: 14,
-              borderTop: `1px dashed ${CON.line}`,
+              gap: 14,
+              ...mono,
+              fontSize: 11,
+              color: CON.dim,
+              letterSpacing: '0.04em',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                gap: 14,
-                ...mono,
-                fontSize: 11,
-                color: CON.dim,
-                letterSpacing: '0.04em',
-              }}
-            >
-              <span>
-                <span style={{ color: CON.mid }}>STK</span> {stackTight}
-              </span>
-              <span>
-                <span style={{ color: CON.mid }}>EST</span> {p.started}
-              </span>
-            </div>
-            <span
-              style={{
-                ...mono,
-                fontSize: 11,
-                color: c,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                borderBottom: `1px solid ${c}`,
-                paddingBottom: 1,
-              }}
-            >
-              {isOpen ? '▴ close' : 'open →'}
+            <span>
+              <span style={{ color: CON.mid }}>STK</span> {stackTight}
+            </span>
+            <span>
+              <span style={{ color: CON.mid }}>EST</span> {p.started}
             </span>
           </div>
+          <span
+            style={{
+              ...mono,
+              fontSize: 11,
+              color: c,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              borderBottom: `1px solid ${c}`,
+              paddingBottom: 1,
+            }}
+          >
+            {isOpen ? '▴ close' : 'open →'}
+          </span>
         </div>
-      </button>
+      </div>
     </article>
   )
 }

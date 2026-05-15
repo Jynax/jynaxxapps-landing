@@ -10,9 +10,14 @@ import { CON } from './accents'
 const mono = { fontFamily: 'var(--font-mono)' }
 
 // RECONCILE: console.jsx splits "Now Playing" into a bold headline + a
-// monospace sub-line; our jxData ships a single JX_NOW.line. We render the
-// headline from jxData and keep the reference's framing chrome (label/tag/bars).
-const HEADLINE = 'obsessed with telling software like a story.'
+// monospace sub-line; our jxData ships a single JX_NOW.line. We derive both
+// tiers from JX_NOW.line (no hardcoded/fabricated copy, no duplication):
+// headline = first sentence (up to & incl. the first '. '); sub = remainder.
+function splitNow(line: string): { headline: string; sub: string } {
+  const i = line.indexOf('. ')
+  if (i === -1) return { headline: line, sub: '' }
+  return { headline: line.slice(0, i + 1), sub: line.slice(i + 2).trim() }
+}
 
 function PulseDot({ reduced }: { reduced: boolean }) {
   return (
@@ -65,6 +70,7 @@ function FocusBars({ value }: { value: number }) {
 
 export function SignalPanel() {
   const reduced = useReducedMotion()
+  const { headline, sub } = splitNow(JX_NOW.line)
   return (
     <div style={{ padding: '0 48px 64px' }}>
       <section
@@ -112,19 +118,21 @@ export function SignalPanel() {
                   textWrap: 'pretty',
                 }}
               >
-                {HEADLINE}
+                {headline}
               </div>
-              <div
-                style={{
-                  ...mono,
-                  fontSize: 13,
-                  color: CON.mid,
-                  marginTop: 6,
-                  lineHeight: 1.6,
-                }}
-              >
-                {JX_NOW.line}
-              </div>
+              {sub && (
+                <div
+                  style={{
+                    ...mono,
+                    fontSize: 13,
+                    color: CON.mid,
+                    marginTop: 6,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {sub}
+                </div>
+              )}
             </div>
             <div style={{ textAlign: 'right' }}>
               <div
