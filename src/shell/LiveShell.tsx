@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState, useCallback } from 'react'
-import { useDirectionRoute } from './useDirectionRoute'
+import type { ReactElement } from 'react'
+import { useDirectionRoute, STORAGE_KEY } from './useDirectionRoute'
 import type { DirectionId } from './useDirectionRoute'
 
 interface Direction {
@@ -22,7 +23,7 @@ const LazyConsole  = lazy(() => import('../directions/Console'))
 const LazyJournal  = lazy(() => import('../directions/Journal'))
 const LazyArcade   = lazy(() => import('../directions/Arcade'))
 
-function DirectionContent({ direction }: { direction: DirectionId }) {
+function DirectionContent({ direction }: { direction: DirectionId }): ReactElement {
   switch (direction) {
     case 'terminal': return <LazyTerminal />
     case 'console':  return <LazyConsole />
@@ -32,22 +33,32 @@ function DirectionContent({ direction }: { direction: DirectionId }) {
 }
 
 export function LiveShell() {
-  const { direction, setDirection, isHidden, cameFromHash } = useDirectionRoute()
+  const { direction, setDirection, cameFromHash } = useDirectionRoute()
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [copyLabel, setCopyLabel] = useState<string | null>(null)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const currentDir = DIRECTIONS.find(d => d.id === direction)!
+  // Fix C: derive from the source of truth (DIRECTIONS[].featured) rather than
+  // duplicating the journal/arcade list in the hook.
+  const isHidden = !currentDir.featured
 
   // On first mount: if arrived via hash, persist that direction to localStorage
   // without changing the hash (the hook's setDirection would clobber nothing here,
   // but we need to write storage without calling history.replaceState again).
   useEffect(() => {
     if (cameFromHash) {
-      localStorage.setItem('jx-live-direction', direction)
+      localStorage.setItem(STORAGE_KEY, direction)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // intentionally only on mount
+
+  // Fix A: clear copy-link timer on unmount to avoid setState-after-unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    }
+  }, [])
 
   // Scroll to top on direction change
   useEffect(() => {

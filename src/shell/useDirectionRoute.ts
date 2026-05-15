@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 
 export type DirectionId = 'terminal' | 'console' | 'journal' | 'arcade'
 const VALID: DirectionId[] = ['terminal', 'console', 'journal', 'arcade']
-const STORAGE_KEY = 'jx-live-direction'
+export const STORAGE_KEY = 'jx-live-direction'
 export const DEFAULT_DIRECTION: DirectionId = 'terminal'
 
 function fromHash(): DirectionId | null {
@@ -18,6 +18,10 @@ export function useDirectionRoute() {
     return (VALID as string[]).includes(saved ?? '') ? (saved as DirectionId) : DEFAULT_DIRECTION
   })
 
+  // Fix B: capture once at hook construction so post-setDirection re-renders
+  // don't re-read window.location.hash and wrongly keep cameFromHash true.
+  const [cameFromHash] = useState(() => fromHash() !== null)
+
   useEffect(() => {
     const onHash = () => { const h = fromHash(); if (h) setDirectionState(h) }
     window.addEventListener('hashchange', onHash)
@@ -30,6 +34,6 @@ export function useDirectionRoute() {
     setDirectionState(d)
   }, [])
 
-  const fromUrlHash = fromHash()
-  return { direction, setDirection, isHidden: direction === 'journal' || direction === 'arcade', cameFromHash: !!fromUrlHash }
+  // Fix C: isHidden removed — computed in LiveShell from DIRECTIONS[].featured
+  return { direction, setDirection, cameFromHash }
 }
