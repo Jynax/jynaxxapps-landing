@@ -112,7 +112,7 @@ export const JX_PROJECTS: Project[] = [
     stack: ['Vite', 'React', 'TypeScript', 'Tailwind'],
     started: '2025-10',
     touched: 'paused',
-    href: 'https://noteworthy.jynaxxapps.com',
+    href: '#',
     chapter: 'V.',
     group: 'public',
   },
