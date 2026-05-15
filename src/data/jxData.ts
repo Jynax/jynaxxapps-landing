@@ -1,5 +1,11 @@
 // SOURCE: static register for v1 (open-decisions item 2 sanctions stubbing KV). Swap to KV-backed register when an admin editor exists — out of scope for scaffold.
 
+declare global {
+  interface Window {
+    __JX__?: { total: number; public: number; workshop: number };
+  }
+}
+
 export type ProjectStatus =
   | 'active'
   | 'building'
@@ -237,7 +243,8 @@ export const JX_NOW = {
   line: 'obsessed with telling software like a story. rewriting meta tracker’s decision graph. drinking too much coffee.',
 };
 
-export const JX_CONTACT = [
+export type ContactKind = 'email' | 'github' | 'bluesky' | 'rss';
+export const JX_CONTACT: { kind: ContactKind; label: string; value: string; href: string }[] = [
   { kind: 'email',   label: 'email',   value: 'jynaxx@gmail.com',            href: 'mailto:jynaxx@gmail.com' },
   { kind: 'github',  label: 'github',  value: 'github.com/Jynax',             href: 'https://github.com/Jynax' },
   { kind: 'bluesky', label: 'bluesky', value: '@mrchartrand.bsky.social',     href: 'https://bsky.app/profile/mrchartrand.bsky.social' },
@@ -250,8 +257,9 @@ export const JX_FOOTER = {
   made:      'made in canada',
 };
 
+// e2e test hook — e2e/data-register.spec.ts reads these counts at runtime
 if (typeof window !== 'undefined') {
-  (window as any).__JX__ = {
+  window.__JX__ = {
     total:    JX_PROJECTS.length,
     public:   JX_PROJECTS.filter(p => p.group === 'public').length,
     workshop: JX_PROJECTS.filter(p => p.group === 'workshop').length,

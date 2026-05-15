@@ -1,4 +1,4 @@
-import './data/jxData'
+import './data/jxData' // registers window.__JX__ for e2e; redundant once a component imports jxData by name
 import { ThemeProvider } from './context/ThemeContext'
 import { ThemePicker } from './components/ThemePicker'
 import { Hero } from './components/Hero'
