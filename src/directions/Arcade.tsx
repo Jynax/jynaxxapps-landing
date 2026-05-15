@@ -1,10 +1,15 @@
+// Parked minimal stub — full design (arcade.jsx) intentionally deferred; product owner iterates with designer separately.
+import { ParkedStub } from './ParkedStub';
+
 export default function Arcade() {
   return (
-    <section
-      data-direction="arcade"
-      style={{ minHeight: '100%', padding: 40, background: 'var(--arc-bg)', color: 'var(--arc-ink)' }}
-    >
-      arcade — placeholder (Task 7)
-    </section>
-  )
+    <ParkedStub
+      directionId="arcade"
+      bg="var(--arc-bg)"
+      fg="var(--arc-ink)"
+      muted="var(--arc-dim)"
+      accent="var(--arc-neon-2)"
+      wordmarkFont="var(--font-pixel)"
+    />
+  );
 }
