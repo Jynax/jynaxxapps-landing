@@ -23,12 +23,14 @@ test.describe('Admin', () => {
     await expect(page.locator('.projects')).not.toBeVisible();
   });
 
-  test('navigating from admin back to root shows site', async ({ page }) => {
+  test('navigating from admin back to root shows the site', async ({ page }) => {
     await page.goto('/#/admin');
     await expect(page.locator('.admin-login-card')).toBeVisible();
-    // Navigate back to root
+    await expect(page.locator('[data-direction]')).toHaveCount(0);
+    // Navigate back to the site root — the live shell renders a direction and
+    // the admin login UI is gone.
     await page.goto('/');
-    await expect(page.locator('.hero')).toBeVisible();
-    await expect(page.locator('.admin-login-card')).not.toBeVisible();
+    await expect(page.locator('[data-direction]')).toBeVisible();
+    await expect(page.locator('.admin-login-card')).toHaveCount(0);
   });
 });
