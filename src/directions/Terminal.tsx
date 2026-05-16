@@ -75,7 +75,6 @@ export default function Terminal() {
       style={{
         position: 'relative',
         minHeight: '100%',
-        flex: 1,
         background: 'var(--term-bg)',
         color: 'var(--term-fg)',
         fontFamily: 'var(--font-mono)',
