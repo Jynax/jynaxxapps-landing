@@ -5,14 +5,14 @@
 // semantic/web-font React app — a baked ASCII-art <pre> is not a heading, hurts
 // a11y/SEO, breaks across narrow viewports, and depends on glyph metrics. The
 // VT323 wordmark preserves the drawn-letter terminal feel while staying a real
-// <h1>. The subtitle `// a workshop on the internet · MMXXVI` matches canonical.
+// <h1>. The subtitle `// a workshop for digital machines · MMXXVI` matches canonical.
 
 /**
  * Block 2 — ASCII title.
  *
  * Per design-spec-terminal.md #2 + Typography table:
  *   - Big drawn-letter `JYNAXX` wordmark in VT323 (`--font-vt`)
- *   - Subtitle `// a workshop on the internet · MMXXVI`
+ *   - Subtitle `// a workshop for digital machines · MMXXVI`
  *
  * Semantic: the wordmark is the page's single <h1> (visually ASCII-styled).
  * The two `xx` are treated as a graphic device per brand.md "Wordmark"
@@ -57,7 +57,7 @@ export function AsciiTitle() {
           textShadow: 'var(--term-glow)',
         }}
       >
-        // a workshop on the internet · MMXXVI
+        // a workshop for digital machines · MMXXVI
       </p>
     </div>
   )

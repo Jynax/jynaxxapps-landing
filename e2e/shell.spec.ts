@@ -10,13 +10,16 @@ test('#console deep-link renders Console', async ({ page }) => {
   await expect(page.locator('[data-direction="console"]')).toBeVisible();
 });
 
-test('hidden #journal reachable + shows hidden badge', async ({ page }) => {
+test('hidden #journal reachable via direct hash, not a switcher dot', async ({ page }) => {
   await page.goto('/#journal');
   await expect(page.locator('[data-direction="journal"]')).toBeVisible();
-  await expect(page.locator('[data-hidden-badge]')).toBeVisible();
+  // New floating-pill switcher only renders featured directions as dots;
+  // parked directions stay reachable by hash but are not in the pill.
+  await expect(page.locator('[data-toggle-direction="journal"]')).toHaveCount(0);
+  await expect(page.locator('[data-toggle-direction]')).toHaveCount(2);
 });
 
-test('toggle bar only shows featured directions', async ({ page }) => {
+test('switcher pill only shows featured directions', async ({ page }) => {
   await page.goto('/#terminal');
   const btns = page.locator('[data-toggle-direction]');
   await expect(btns).toHaveCount(2);

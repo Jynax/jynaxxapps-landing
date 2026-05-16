@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { Prompt } from '../parts/Prompt'
 
-// DELIBERATE DEVIATION FROM CANONICAL — reviewed, kept on purpose (out of this
-// reconciliation's content scope; flagged for PR open-items).
-// Canonical terminal.jsx's about.txt block names "michael chartrand" and uses
-// its own "by day / by night" prose. Our bio is composed ONLY from brand.md's
-// defined Identity, "Who it's for", and Voice notes (lowercase, first-person,
-// sarcastic) and intentionally omits the real name. The collapse/expand
+// About prose: composed from brand.md Identity + "Who it's for" + Voice
+// (lowercase, first-person, sarcastic). Names "michael chartrand" once,
+// Jynaxx-voiced and non-professional, per the S153 product decision closing
+// Redesign Open Item #4 — brand.md's Identity names him itself; its only hard
+// never-name rule is the partner, who is never named here. Collapse/expand
 // mechanics (clamp ~110px → 1200px, .35s ease, dotted-underline toggle) match
-// canonical's behaviour; only the prose source differs and is left as-is here.
+// canonical behaviour.
 
 /**
  * Block 5 — `cat ./about.txt` collapsible story block.
@@ -87,11 +86,11 @@ export function AboutBlock() {
         }}
       >
         <p style={{ margin: 0 }}>
-          by day i'm an ai experience lead — years of process, systems, and
-          people behind me. by night i'm jynaxx: the curious, mischievous,
-          sarcastic half that builds small things with ai for the joy of
-          seeing what's possible, then writes down every decision along the
-          way.
+          i'm michael chartrand. by day, an ai experience lead — years of
+          process, systems, and people behind me. by night i'm jynaxx: the
+          curious, mischievous, sarcastic half that builds small things with
+          ai for the joy of seeing what's possible, then writes down every
+          decision along the way.
         </p>
         <p style={{ margin: '14px 0 0' }}>
           this site is the workshop. it's a personal portfolio and a public

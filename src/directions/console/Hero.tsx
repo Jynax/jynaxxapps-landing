@@ -83,12 +83,12 @@ export function Hero() {
               >
                 <span style={{ display: 'block' }}>a workshop</span>
                 <span style={{ display: 'block', color: CON.mid }}>
-                  on the
+                  for digital
                   <span style={{ color: CON.amber, position: 'relative', marginLeft: 18 }}>
-                    internet,
+                    machines,
                   </span>
                 </span>
-                <span style={{ display: 'block', fontWeight: 500, color: CON.ink }}>
+                <span style={{ display: 'block', fontStyle: 'italic', fontWeight: 500, color: CON.ink }}>
                   run by one curious operator.
                 </span>
               </h1>
