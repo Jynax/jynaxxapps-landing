@@ -19,6 +19,39 @@ test.describe('Terminal — PhosphorKeyboard canonical 4-row layout (audit #1)',
   });
 });
 
+test.describe('Terminal — PhosphorKeyboard phosphor decay trail (S156 follow-up)', () => {
+  // The text type-out and the lit key share one counter (LiveNow `shown`), so
+  // they advance at the same rate — but a key snapping off each tick READS ~2x
+  // faster than the text growing. Fix: a CRT-phosphor afterglow — keys fade out
+  // over a few hundred ms instead of snapping, so the eye follows the text's
+  // cadence. No second clock; same typing rate.
+  test('non-reduced: keys carry a decay (fade-out) transition, not an instant snap-off', async ({ page }) => {
+    await page.goto('/#terminal');
+    const key = page.locator('[data-phosphor-keyboard] [data-key="Q"]').first();
+    await expect(key).toBeVisible();
+    const durMs = await key.evaluate((el) => {
+      const d = getComputedStyle(el).transitionDuration; // e.g. "0.45s" or "0s"
+      return d.split(',').reduce((m, s) => Math.max(m, parseFloat(s) * (s.includes('ms') ? 1 : 1000)), 0);
+    });
+    // Was `transition: none` (0ms). Decay must be a few hundred ms.
+    expect(durMs).toBeGreaterThanOrEqual(300);
+  });
+
+  test('reduced-motion: decay frozen (transition-duration 0s via global tokens rule)', async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await context.newPage();
+    await page.goto('/#terminal');
+    const key = page.locator('[data-phosphor-keyboard] [data-key="Q"]').first();
+    await expect(key).toBeVisible();
+    const durMs = await key.evaluate((el) => {
+      const d = getComputedStyle(el).transitionDuration;
+      return d.split(',').reduce((m, s) => Math.max(m, parseFloat(s) * (s.includes('ms') ? 1 : 1000)), 0);
+    });
+    expect(durMs).toBe(0);
+    await context.close();
+  });
+});
+
 test.describe('Console — SectionHeader uppercase title (audit #15)', () => {
   test('section header title is rendered uppercase (canonical textTransform)', async ({ page }) => {
     await page.goto('/#console');
