@@ -8,6 +8,7 @@ import { JX_PROJECTS, JX_NOW, JX_FOOTER } from '../data/jxData'
 import { Prompt } from './parts/Prompt'
 import { BootLine } from './parts/BootLine'
 import { useBootStream } from './parts/useBootStream'
+import { useReducedMotion } from './parts/useReducedMotion'
 import { CrtHeader } from './terminal/CrtHeader'
 import { AsciiTitle } from './terminal/AsciiTitle'
 import { AboutBlock } from './terminal/AboutBlock'
@@ -66,6 +67,17 @@ export default function Terminal() {
   // Boot log streaming — re-runs whenever the Terminal component mounts (the
   // shell unmounts/remounts directions on toggle, so a fresh mount restarts it).
   const visible = useBootStream(BOOT_LINES.length)
+  const reduced = useReducedMotion()
+
+  // Enhancement beyond the canonical reference (where `help` is a static
+  // signpost): clicking a command jumps to its on-page section. Pure in-page
+  // scroll — NO url-hash anchors, which would collide with the direction
+  // router (#terminal/#console).
+  const jumpToSection = (id: string) => {
+    document
+      .querySelector(`[data-term-section="${id}"]`)
+      ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+  }
 
   const section: React.CSSProperties = { marginTop: 40 }
 
@@ -144,9 +156,29 @@ export default function Terminal() {
                 key={h.cmd}
                 style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 16 }}
               >
-                <span style={{ color: 'var(--term-fg-bright)', textShadow: 'var(--term-glow)' }}>
+                <button
+                  type="button"
+                  onClick={() => jumpToSection(h.cmd)}
+                  aria-label={`Jump to ${h.cmd} section`}
+                  style={{
+                    appearance: 'none',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    margin: 0,
+                    font: 'inherit',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: 'var(--term-fg-bright)',
+                    textShadow: 'var(--term-glow)',
+                    textDecoration: 'underline',
+                    textDecorationStyle: 'dotted',
+                    textUnderlineOffset: 4,
+                    justifySelf: 'start',
+                  }}
+                >
                   {h.cmd}
-                </span>
+                </button>
                 <span style={{ color: 'var(--term-fg-dim)' }}>{h.desc}</span>
               </li>
             ))}
@@ -154,12 +186,12 @@ export default function Terminal() {
         </div>
 
         {/* 5 — cat ./about.txt (collapsible) */}
-        <div style={section}>
+        <div style={section} data-term-section="about">
           <AboutBlock />
         </div>
 
         {/* 6 — cat ./now.txt */}
-        <div style={section}>
+        <div style={section} data-term-section="now">
           <Prompt command="cat ./now.txt" />
           <p
             style={{
@@ -177,7 +209,7 @@ export default function Terminal() {
         </div>
 
         {/* 7 — ls -la ~/apps/ (6 public) */}
-        <div style={section}>
+        <div style={section} data-term-section="ls">
           <ProjectListing command="ls -la ~/apps/" projects={publicProjects} />
         </div>
 
@@ -187,12 +219,12 @@ export default function Terminal() {
         </div>
 
         {/* 9 — cat manifesto.txt (boxed ASCII) */}
-        <div style={section}>
+        <div style={section} data-term-section="manifesto">
           <ManifestoBox />
         </div>
 
         {/* 10 — contact */}
-        <div style={section}>
+        <div style={section} data-term-section="contact">
           <ContactBlock />
         </div>
 
