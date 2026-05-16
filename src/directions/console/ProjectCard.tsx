@@ -151,10 +151,20 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
           {p.blurb}
         </p>
 
-        {/* Dossier — collapsed by default, instant reveal. Sibling of the
-            toggle button (not nested), with the Launch <a> raised above the
-            overlay so it is clickable and never inside the <button>. */}
-        {isOpen && (
+        {/* Dossier — canonical .35s max-height open animation (audit #16:
+            the shipped {isOpen && …} instant mount had dropped the canonical
+            `transition: max-height .35s ease`). Always rendered so it can
+            animate; the a11y structure is preserved — still a sibling of the
+            toggle <button> (never nested), Launch <a> raised above the overlay
+            via zIndex. Collapsed = max-height 0 + overflow hidden. */}
+        <div
+          data-card-dossier-anim
+          style={{
+            maxHeight: isOpen ? 400 : 0,
+            overflow: 'hidden',
+            transition: 'max-height .35s ease',
+          }}
+        >
           <div data-card-dossier style={{ position: 'relative', zIndex: 2, marginBottom: 14 }}>
             <div
               style={{
@@ -216,7 +226,7 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
               )}
             </div>
           </div>
-        )}
+        </div>
 
         {/* Footer line */}
         <div

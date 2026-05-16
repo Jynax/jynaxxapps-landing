@@ -15,7 +15,7 @@ const DIRECTIONS: Direction[] = [
   { id: 'terminal', short: 'Terminal',  full: 'Phosphor Terminal', accent: '#F4B942', featured: true  },
   { id: 'console',  short: 'Console',   full: 'Console',           accent: '#6CE0D4', featured: true  },
   { id: 'journal',  short: 'Journal',   full: 'Journal',           accent: '#F4B942', featured: false },
-  { id: 'arcade',   short: 'Arcade',    full: 'Arcade',            accent: '#FF3D7F', featured: true  },
+  { id: 'arcade',   short: 'Arcade',    full: 'Arcade',            accent: '#FFD93D', featured: true  },
 ]
 
 const LazyTerminal = lazy(() => import('../directions/Terminal'))

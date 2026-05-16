@@ -8,7 +8,18 @@
 // keys — not under the full page width, which is what an auto-width block root
 // would have caused.
 
-const ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'] as const
+// Canonical 4-row layout (May-16 reference terminal.jsx:361-366): number row +
+// punctuation, with the real QWERTY per-row stagger. Letters are kept
+// upper-cased to match the shipped phosphor display; `normalize()` upper-cases
+// the active char so digits/punctuation match too. Audit MISS #1: the shipped
+// keyboard had only 3 letter rows, so digits/punctuation in the live activity
+// (e.g. "2.1", "7s") lit no key.
+const ROWS = [
+  { keys: '1234567890-=', offset: 0 },
+  { keys: 'QWERTYUIOP', offset: 10 },
+  { keys: 'ASDFGHJKL;', offset: 18 },
+  { keys: 'ZXCVBNM,./', offset: 28 },
+] as const
 
 function normalize(ch: string): string {
   if (ch === ' ') return 'SPACE'
@@ -65,11 +76,11 @@ export function PhosphorKeyboard({ activeChar }: { activeChar: string }) {
             display: 'flex',
             gap: 4,
             marginTop: r === 0 ? 0 : 4,
-            // each row indents slightly like a real QWERTY stagger
-            paddingLeft: r * 10,
+            // canonical per-row QWERTY stagger
+            paddingLeft: row.offset,
           }}
         >
-          {row.split('').map(ch => (
+          {row.keys.split('').map(ch => (
             <Key key={ch} label={ch} lit={active === ch} />
           ))}
         </div>

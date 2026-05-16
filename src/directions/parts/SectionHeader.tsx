@@ -58,8 +58,10 @@ export function SectionHeader({ id, title, subtitle, meta }: SectionHeaderProps)
             § {id}
           </span>
 
-          {/* title — display 36px */}
+          {/* title — display 36px, UPPERCASE per canonical console.jsx:503
+              (audit #15 — shipped had dropped textTransform) */}
           <span
+            data-section-title
             style={{
               fontFamily: 'var(--font-display)',
               fontSize: 36,
@@ -67,6 +69,7 @@ export function SectionHeader({ id, title, subtitle, meta }: SectionHeaderProps)
               color: 'var(--con-ink)',
               letterSpacing: '-0.02em',
               lineHeight: 1,
+              textTransform: 'uppercase',
             }}
           >
             {title}
