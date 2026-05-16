@@ -11,12 +11,13 @@ test.describe('Navigation & Layout', () => {
     await expect(page.locator('[data-direction="terminal"]')).toBeVisible();
   });
 
-  test('toggle bar is present with the two featured directions', async ({ page }) => {
+  test('toggle bar is present with the three featured directions', async ({ page }) => {
     await page.goto('/');
     const toggles = page.locator('[data-toggle-direction]');
-    await expect(toggles).toHaveCount(2);
+    await expect(toggles).toHaveCount(3);
     await expect(page.locator('[data-toggle-direction="terminal"]')).toBeVisible();
     await expect(page.locator('[data-toggle-direction="console"]')).toBeVisible();
+    await expect(page.locator('[data-toggle-direction="arcade"]')).toBeVisible();
   });
 
   test('clicking the Console toggle switches direction and updates the hash', async ({ page }) => {

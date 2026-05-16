@@ -14,15 +14,16 @@ test('hidden #journal reachable via direct hash, not a switcher dot', async ({ p
   await page.goto('/#journal');
   await expect(page.locator('[data-direction="journal"]')).toBeVisible();
   // New floating-pill switcher only renders featured directions as dots;
-  // parked directions stay reachable by hash but are not in the pill.
+  // parked directions (now journal only) stay reachable by hash but are not
+  // in the pill. Featured set is Terminal · Console · Arcade.
   await expect(page.locator('[data-toggle-direction="journal"]')).toHaveCount(0);
-  await expect(page.locator('[data-toggle-direction]')).toHaveCount(2);
+  await expect(page.locator('[data-toggle-direction]')).toHaveCount(3);
 });
 
 test('switcher pill only shows featured directions', async ({ page }) => {
   await page.goto('/#terminal');
   const btns = page.locator('[data-toggle-direction]');
-  await expect(btns).toHaveCount(2);
+  await expect(btns).toHaveCount(3);
 });
 
 test('keyboard 2 switches to Console and replaces hash', async ({ page }) => {
