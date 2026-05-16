@@ -1,18 +1,21 @@
+import { useEffect, useState } from 'react'
 import { JX_PROJECTS, JX_NOW } from '../../data/jxData'
-import type { Project } from '../../types/jx'
+import type { Project, LiveEntry } from '../../types/jx'
 
 /**
- * Live-feed contract consumed by the Arcade live strip (and any future
- * direction widget). This is the **stub** implementation: a single static
- * "current" entry derived from the already-public `JX_NOW` line.
+ * Live-feed contract consumed by every direction widget (Terminal `tail -f`,
+ * Console signal readout, Arcade live strip). Task #26 swapped this hook's
+ * internals from a static stub to a real `GET /api/live` fetch — the `LiveFeed`
+ * shape below is the stable seam, so the widgets (and the #25 Arcade strip)
+ * needed no contract change, only real data.
  *
- * Task #26 owns the real data wiring (`useLiveFeed` → `/api/live` KV, Stage-1
- * session-ritual gate). It will swap *only this hook's internals*; the shape
- * below is the stable seam, so the strip UI built in #25 needs no change.
+ * Decision 8.3 (S153): single current entry, not a rotating queue → always
+ * index 0 of total 1. `watchers` stays honest-minimal (1) until real presence
+ * lands (Stages 2–3, deferred Phase 2 — `/api/presence`).
  *
- * Decision 8.3 (S153): single current entry, not a rotating queue → index 0
- * of total 1. Phrasing stays public-safe (it's the same line Console already
- * ships). `watchers` is honest-minimal until real presence lands (Stages 2–3).
+ * Graceful fallback: Pages Functions are not served by `vite dev`, and a fresh
+ * deploy may have no entry yet, so any non-OK / non-JSON response keeps the
+ * static `JX_NOW` line (the same public-safe copy Console already shipped).
  */
 export interface LiveFeed {
   /** Public-safe activity line. */
@@ -29,20 +32,54 @@ export interface LiveFeed {
   watchers: number
 }
 
-const CURRENT_PROJECT_ID = 'meta-tracker' // JX_NOW references the Meta Tracker rewrite
+const FALLBACK_PROJECT_ID = 'meta-tracker' // JX_NOW references the Meta Tracker rewrite
 
-export function useLiveFeed(): LiveFeed {
-  const project =
-    JX_PROJECTS.find(p => p.id === CURRENT_PROJECT_ID) ??
-    JX_PROJECTS.find(p => p.group === 'public') ??
-    null
+function resolveProject(id: string | null): Project | null {
+  if (!id) return null
+  return JX_PROJECTS.find(p => p.id === id) ?? null
+}
 
+function fallbackFeed(): LiveFeed {
   return {
     activity: JX_NOW.line,
-    project,
+    project:
+      resolveProject(FALLBACK_PROJECT_ID) ??
+      JX_PROJECTS.find(p => p.group === 'public') ??
+      null,
     since: 'today',
     index: 0,
     total: 1,
     watchers: 1,
   }
+}
+
+export function useLiveFeed(): LiveFeed {
+  const [feed, setFeed] = useState<LiveFeed>(fallbackFeed)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    fetch('/api/live', { signal: controller.signal })
+      .then(async res => {
+        if (!res.ok) return // 404 (unset) / non-OK → keep fallback
+        const entry = (await res.json()) as Partial<LiveEntry>
+        if (!entry || typeof entry.activity !== 'string' || !entry.activity) return
+        setFeed({
+          activity: entry.activity,
+          project: resolveProject(typeof entry.project === 'string' ? entry.project : null),
+          since: typeof entry.since === 'string' && entry.since ? entry.since : 'today',
+          index: 0,
+          total: 1,
+          watchers: 1,
+        })
+      })
+      .catch(() => {
+        // Aborted, network error, or HTML (vite dev fallthrough → res.json
+        // throws) — keep the static fallback. No setState needed.
+      })
+
+    return () => controller.abort()
+  }, [])
+
+  return feed
 }

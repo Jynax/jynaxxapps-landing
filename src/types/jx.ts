@@ -29,6 +29,18 @@ export type Project = {
   group: 'public' | 'workshop';
 };
 
+// Wire shape for GET/POST /api/live (Task #26). Single current entry —
+// Decision 8.3 #3 (S153) settled the api-contracts.md open question in favour
+// of one entry, not a rotating queue, so there is no `entries[]` wrapper.
+// `project` is a JX_PROJECTS[].id (or null); the frontend hook resolves it to
+// the full Project. `updated` is server-stamped ISO on POST (never client-sent).
+export type LiveEntry = {
+  activity: string;
+  project: string | null;
+  since: string;
+  updated: string;
+};
+
 export type ContactKind = 'email' | 'github' | 'bluesky' | 'rss';
 
 export type ContactEntry = {
