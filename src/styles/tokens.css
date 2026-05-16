@@ -1,0 +1,147 @@
+/**
+ * tokens.css — JynaxxApps design tokens
+ *
+ * Drop this in as a starting point. Tokens are namespaced per direction
+ * (`--term-*`, `--con-*`, `--shell-*`) so all four directions can coexist
+ * inside the same page bundle.
+ *
+ * Values match the reference implementation in /directions/*.jsx.
+ */
+
+:root {
+  /* ─────────────────────────────────────────────────────────────────
+   * SHELL — the live toggle bar (live.html + live.jsx)
+   * ──────────────────────────────────────────────────────────────── */
+  --shell-bar-bg:       #0A0F13;
+  --shell-bar-border:   rgba(255, 255, 255, 0.08);
+  --shell-bar-height:   52px;
+  --shell-ink:          #E8F0F5;
+  --shell-mid:          #A8B5BD;
+  --shell-dim:          #5C7080;
+  --shell-faint:        #3E5260;
+  --shell-pill-bg:      rgba(255, 255, 255, 0.04);
+  --shell-pill-border:  rgba(255, 255, 255, 0.08);
+
+  /* ─────────────────────────────────────────────────────────────────
+   * STATUS — used across all directions for project state.
+   * Colors are direction-tuned by the implementation but live here as
+   * the canonical reference (see directions/shared.jsx → JX_STATUS).
+   * ──────────────────────────────────────────────────────────────── */
+  --status-active:           #86C26B;
+  --status-building:         #86C26B;
+  --status-frozen:           #7BA9E0;
+  --status-maintained:       #9BB07A;
+  --status-winding-down:     #C68A5C;
+  --status-shipped-private:  #9BB07A;
+  --status-research:         #F4B942;
+  --status-sketch:           #C68A5C;
+  --status-soon:             #8A7E6E;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * TERMINAL — Direction 02
+   * ──────────────────────────────────────────────────────────────── */
+  --term-bg:           #0A0805;
+  --term-fg:           #F4B942;
+  --term-fg-bright:    #FFD56A;
+  --term-fg-dim:       #9A7426;
+  --term-accent:       #86C26B;  /* OK / username */
+  --term-warn:         #F4B942;
+  --term-danger:       #E07856;
+  --term-glow:         0 0 6px rgba(244, 185, 66, 0.4),
+                       0 0 14px rgba(244, 185, 66, 0.2);
+  --term-glow-strong:  0 0 12px rgba(244, 185, 66, 0.6),
+                       0 0 28px rgba(244, 185, 66, 0.33);
+
+  /* ─────────────────────────────────────────────────────────────────
+   * CONSOLE — Direction 04
+   * ──────────────────────────────────────────────────────────────── */
+  --con-bg:        #0E1419;
+  --con-bg-alt:    #141C23;
+  --con-bg-raise:  #1A2530;
+  --con-line:      #2A3A45;
+  --con-line-glow: #3E5260;
+  --con-ink:       #E8F0F5;
+  --con-mid:       #8BA3B0;
+  --con-dim:       #4F6470;
+  --con-amber:     #E8C56B;
+  --con-cyan:      #6CE0D4;
+  --con-coral:     #E07C5A;
+  --con-lavender:  #A78BFA;
+  --con-sage:      #8BC890;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * JOURNAL — Direction 01 (parked; still reachable at #journal)
+   * Two themes (dark/light), default dark.
+   * ──────────────────────────────────────────────────────────────── */
+  --jrn-bg:           #161310;
+  --jrn-paper:        #1C1814;
+  --jrn-fg:           #EFE7D6;
+  --jrn-muted:        #8A7E6E;
+  --jrn-faint:        #5A5046;
+  --jrn-line:         #2A241D;
+  --jrn-accent:       #F4B942;
+  --jrn-pill-bg:      #221C16;
+  --jrn-status-live:      #86C26B;
+  --jrn-status-research:  #F4B942;
+  --jrn-status-sketch:    #C68A5C;
+
+  /* light-mode overrides */
+  --jrn-bg-light:     #F2ECDD;
+  --jrn-paper-light:  #EAE2D0;
+  --jrn-fg-light:     #1C1812;
+  --jrn-muted-light:  #776B59;
+  --jrn-faint-light:  #B5A892;
+  --jrn-line-light:   #D6C9AE;
+  --jrn-accent-light: #B26A12;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * ARCADE — Direction 03 (parked; still reachable at #arcade)
+   * ──────────────────────────────────────────────────────────────── */
+  --arc-bg:        #0B0D2E;
+  --arc-bg-light:  #1A1F4C;
+  --arc-panel:     #221266;
+  --arc-neon-1:    #FF3D7F;  /* hot pink */
+  --arc-neon-2:    #3DEAFF;  /* cyan */
+  --arc-neon-3:    #FFD93D;  /* sun yellow */
+  --arc-neon-4:    #7BFF7B;  /* green */
+  --arc-ink:       #FFFFFF;
+  --arc-dim:       #7B85C4;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * TYPOGRAPHY — shared font stacks
+   * ──────────────────────────────────────────────────────────────── */
+  --font-mono:    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans:    "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Geist", sans-serif;
+  --font-serif:   "Instrument Serif", "Iowan Old Style", "Georgia", serif;
+  --font-vt:      "VT323", monospace;
+  --font-pixel:   "Press Start 2P", monospace;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * SPACING & MOTION
+   * ──────────────────────────────────────────────────────────────── */
+  --space-section: 64px;
+  --space-block:   32px;
+  --space-item:    16px;
+  --space-tight:   8px;
+
+  --motion-fast:   .15s;
+  --motion-mid:    .35s;
+  --motion-slow:   .6s;
+
+  /* Default easing — feels right for both retro decks and modern panels */
+  --ease-out:      cubic-bezier(.2, .7, .3, 1);
+}
+
+/* ───────────────────────────────────────────────────────────────────
+ * Optional: reduced-motion respect. Strip the loud animations.
+ * ────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+  }
+}

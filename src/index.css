@@ -1,44 +1,6 @@
-@import 'jynaxxapps-tokens/tokens.css';
-@import '@fontsource-variable/inter/index.css';
+@import "./styles/tokens.css";
+@import "tailwindcss";
 
-:root {
-  /* Base dark theme */
-  --color-bg: #0f0f13;
-  --color-surface: #1a1a24;
-  --color-text: #e8e6f0;
-  --color-text-muted: #8b8a97;
-  --color-accent: #7c6aef;
-  --color-accent-hover: #9585f5;
-
-  font-family: var(--jx-font-family);
-  line-height: 1.6;
-  font-weight: 400;
-  color: var(--color-text);
-  background-color: var(--color-bg);
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  min-height: 100vh;
-}
-
-a {
-  color: var(--color-accent);
-  text-decoration: none;
-}
-
-a:hover {
-  color: var(--color-accent-hover);
-}
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--term-bg); color: var(--term-fg); font-family: var(--font-mono); -webkit-font-smoothing: antialiased; }
