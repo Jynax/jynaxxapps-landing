@@ -13,9 +13,13 @@ for (const dir of ['journal', 'arcade'] as const) {
       await expect(root.getByText(/Build to learn\./)).toBeVisible();
     });
 
-    test(`#${dir} still shows the shell hidden-badge`, async ({ page }) => {
+    test(`#${dir} reachable by hash but not a switcher dot`, async ({ page }) => {
       await page.goto(`/#${dir}`);
-      await expect(page.locator('[data-hidden-badge]')).toBeVisible();
+      await expect(page.locator(`[data-direction="${dir}"]`)).toBeVisible();
+      // Parked directions are not in the floating switcher pill (only
+      // featured ones get a dot), but remain reachable via direct hash.
+      await expect(page.locator(`[data-toggle-direction="${dir}"]`)).toHaveCount(0);
+      await expect(page.locator('[data-toggle-direction]')).toHaveCount(2);
     });
   });
 }

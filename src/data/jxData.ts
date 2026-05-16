@@ -27,7 +27,43 @@ export const JX_STATUS: Record<ProjectStatus, { label: string; color: string }> 
 };
 
 export const JX_PROJECTS: Project[] = [
-  // ── Live in the wild (public) ────────────────────────────────────────────
+  // ── Public — on the shelf ─────────────────────────────────────────────────
+  // Display order = cart-shelf order (left → right). Chapter numerals are
+  // stable IDs that survive reordering, so the public shelf reads
+  // non-sequential (VII, VIII, I, III, IV, II) — intentional (Michael, S153).
+  // The front shelf tracks *active work*, not URL availability: Cyberdeck
+  // (hardware) and SMART Machine (local) have no public URL and simply show
+  // no link — uniform card, no badge.
+
+  {
+    id: 'cyberdeck',
+    name: 'Cyberdeck',
+    slug: 'hardware',
+    tag: 'A portable Pi 5 reader, hand-built',
+    blurb: 'Dual-display Raspberry Pi 5 cyberdeck I\'m building for my partner. Primary use: reading around the house with KOReader. Phase 1 bench build — touch display working, one keyboard-input blocker left.',
+    status: 'building',
+    stack: ['Raspberry Pi 5', 'Pi OS Bookworm', 'labwc/Wayland', 'KOReader', 'Piper TTS', 'Bluetooth HID'],
+    started: '2026-02',
+    touched: 'this week',
+    href: '#',
+    chapter: 'VII.',
+    group: 'public',
+  },
+
+  {
+    id: 'smart-machine',
+    name: 'SMART Machine',
+    slug: 'internal · self-hosted',
+    tag: 'Model routing as code, not muscle memory',
+    blurb: 'Self-hosted n8n workflow that classifies a task and routes it to the best-fit model (local SLM, LM Studio, Anthropic API, paid escape hatch). Two-stage interpreter + dispatcher. Phase 2 build, reversibility-first execution under review.',
+    status: 'building',
+    stack: ['n8n', 'LM Studio', 'Claude', 'self-hosted SearXNG'],
+    started: '2026-01',
+    touched: 'this week',
+    href: '#',
+    chapter: 'VIII.',
+    group: 'public',
+  },
 
   {
     id: 'remnants',
@@ -41,21 +77,6 @@ export const JX_PROJECTS: Project[] = [
     touched: 'this week',
     href: 'https://remnants.jynaxxapps.com',
     chapter: 'I.',
-    group: 'public',
-  },
-
-  {
-    id: 'item-b-gone',
-    name: 'Item-B-Gone',
-    slug: 'ibg.jynaxxapps.com',
-    tag: 'A WoW inventory triage tool',
-    blurb: 'Two-part World of Warcraft tool — a Lua tooltip addon that flags items safe to delete (with reasons) plus a React dashboard that reads SavedVariables for a character-by-character view. Addon v0.3, dashboard v4.',
-    status: 'active',
-    stack: ['Lua', 'Static HTML/CSS/JS', 'Node (build)', 'R2'],
-    started: '2025-11',
-    touched: 'weekends',
-    href: 'https://ibg.jynaxxapps.com',
-    chapter: 'II.',
     group: 'public',
   },
 
@@ -90,6 +111,23 @@ export const JX_PROJECTS: Project[] = [
   },
 
   {
+    id: 'item-b-gone',
+    name: 'Item-B-Gone',
+    slug: 'ibg.jynaxxapps.com',
+    tag: 'A WoW inventory triage tool',
+    blurb: 'Two-part World of Warcraft tool — a Lua tooltip addon that flags items safe to delete (with reasons) plus a React dashboard that reads SavedVariables for a character-by-character view. Addon v0.3, dashboard v4.',
+    status: 'active',
+    stack: ['Lua', 'Static HTML/CSS/JS', 'Node (build)', 'R2'],
+    started: '2025-11',
+    touched: 'weekends',
+    href: 'https://ibg.jynaxxapps.com',
+    chapter: 'II.',
+    group: 'public',
+  },
+
+  // ── B-sides — still in the workshop ───────────────────────────────────────
+
+  {
     id: 'note-worthy',
     name: 'Note Worthy',
     slug: 'noteworthy.jynaxxapps.com',
@@ -101,7 +139,7 @@ export const JX_PROJECTS: Project[] = [
     touched: 'paused',
     href: '#',
     chapter: 'V.',
-    group: 'public',
+    group: 'workshop',
   },
 
   {
@@ -116,38 +154,6 @@ export const JX_PROJECTS: Project[] = [
     touched: 'reserved',
     href: '#',
     chapter: 'VI.',
-    group: 'public',
-  },
-
-  // ── In the workshop ───────────────────────────────────────────────────────
-
-  {
-    id: 'cyberdeck',
-    name: 'Cyberdeck',
-    slug: 'hardware',
-    tag: 'A portable Pi 5 reader, hand-built',
-    blurb: 'Dual-display Raspberry Pi 5 cyberdeck I\'m building for my partner. Primary use: reading around the house with KOReader. Phase 1 bench build — touch display working, one keyboard-input blocker left.',
-    status: 'building',
-    stack: ['Raspberry Pi 5', 'Pi OS Bookworm', 'labwc/Wayland', 'KOReader', 'Piper TTS', 'Bluetooth HID'],
-    started: '2026-02',
-    touched: 'this week',
-    href: '#',
-    chapter: 'VII.',
-    group: 'workshop',
-  },
-
-  {
-    id: 'smart-machine',
-    name: 'SMART Machine',
-    slug: 'internal · self-hosted',
-    tag: 'Model routing as code, not muscle memory',
-    blurb: 'Self-hosted n8n workflow that classifies a task and routes it to the best-fit model (local SLM, LM Studio, Anthropic API, paid escape hatch). Two-stage interpreter + dispatcher. Phase 2 build, reversibility-first execution under review.',
-    status: 'building',
-    stack: ['n8n', 'LM Studio', 'Claude', 'self-hosted SearXNG'],
-    started: '2026-01',
-    touched: 'this week',
-    href: '#',
-    chapter: 'VIII.',
     group: 'workshop',
   },
 

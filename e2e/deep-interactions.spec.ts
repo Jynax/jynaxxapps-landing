@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // This spec covers ONLY interactions not already asserted by the green suite
 // (shell/terminal/console/parked/navigation). Coverage mapping for the retired
 // old-DOM assertions is documented in the Task 10 report. The remaining gaps:
-//   1. Copy-link button flips to "✓ LINK COPIED" (no existing coverage).
+//   1. Copy-link pill button flips glyph ⎘ → ✓ on click (no existing coverage).
 //   2. Terminal about block expand AND collapse round-trip
 //      (terminal.spec.ts only asserts the expand half).
 //   3. Console dossier Launch link is layered above the toggle overlay, so
@@ -11,14 +11,15 @@ import { test, expect } from '@playwright/test';
 //   4. Keyboard "1" returns to Terminal (shell.spec.ts only tests "2"→Console).
 
 test.describe('Deep Interactions', () => {
-  test('copy-link button flips to "✓ LINK COPIED"', async ({ page, context }) => {
+  test('copy-link pill button flips glyph ⎘ → ✓ on click', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto('/#terminal');
 
-    const copyBtn = page.locator('button[title="Copy shareable link"]');
+    const copyBtn = page.locator('[data-copy-link]');
     await expect(copyBtn).toBeVisible();
+    await expect(copyBtn).toHaveText('⎘');
     await copyBtn.click();
-    await expect(copyBtn).toHaveText(/✓ LINK COPIED/);
+    await expect(copyBtn).toHaveText('✓');
   });
 
   test('Terminal about block expands AND collapses (round-trip)', async ({ page }) => {
@@ -34,9 +35,12 @@ test.describe('Deep Interactions', () => {
 
   test('Console: clicking the dossier Launch link does not collapse the card', async ({ page, context }) => {
     await page.goto('/#console');
-    const card = page.locator('[data-project-card]').first();
+    // Target a card that actually has a launch link. The front of the shelf
+    // (Cyberdeck, SMART Machine) is no-URL by design and renders no Launch <a>,
+    // so `.first()` would have no link to click — pick Remnants (live URL).
+    const card = page.locator('[data-project-card]').filter({ hasText: 'Remnants' }).first();
     await card.click();
-    const dossier = page.locator('[data-card-dossier]').first();
+    const dossier = card.locator('[data-card-dossier]');
     await expect(dossier).toBeVisible();
 
     // The Launch <a> is a sibling of the toggle overlay, raised above it via
