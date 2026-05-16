@@ -4,8 +4,9 @@
 // from terminal.jsx. The 12-section structure / semantic HTML / reduced-motion /
 // data-from-jxData were spec-reviewed and approved and are intentionally kept.
 
-import { JX_PROJECTS, JX_NOW, JX_FOOTER } from '../data/jxData'
+import { JX_PROJECTS, JX_FOOTER } from '../data/jxData'
 import { Prompt } from './parts/Prompt'
+import { LiveNow } from './terminal/LiveNow'
 import { BootLine } from './parts/BootLine'
 import { useBootStream } from './parts/useBootStream'
 import { useReducedMotion } from './parts/useReducedMotion'
@@ -190,22 +191,9 @@ export default function Terminal() {
           <AboutBlock />
         </div>
 
-        {/* 6 — cat ./now.txt */}
+        {/* 6 — tail -f /var/log/jynaxx/now (live feed) */}
         <div style={section} data-term-section="now">
-          <Prompt command="cat ./now.txt" />
-          <p
-            style={{
-              margin: '12px 0 0',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 14,
-              lineHeight: 1.7,
-              color: 'var(--term-fg)',
-              textShadow: 'var(--term-glow)',
-              maxWidth: '72ch',
-            }}
-          >
-            {JX_NOW.line}
-          </p>
+          <LiveNow />
         </div>
 
         {/* 7 — ls -la ~/apps/ (6 public) */}
