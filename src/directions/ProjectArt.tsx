@@ -6,20 +6,27 @@
 // these shapes/paths/structure reproduce it (adapted JSX -> TSX, palette tokens).
 //
 // Canonical-ported art (shapes from console.jsx, mapped by our jxData ids):
-//   remnants       -> reference `remnants`     (extraction-shooter HUD)
-//   item-b-gone    -> reference `ibg`          (inventory triage grid)
-//   meta-tracker   -> reference `meta-tracker` (node-and-edge graph)
-//   buried-in-print-> reference `bip`          (book spines + trendline)
-//   note-worthy    -> reference `noteworthy`   (musical staff + notes)
-//   on-the-move    -> reference `on-the-move`  (radar sweep + "?")
+//   cyberdeck      -> reference `cyberdeck`     (dual-display handheld schematic)
+//   smart-machine  -> reference `smart-machine` (dispatcher signal-flow)
+//   remnants       -> reference `remnants`      (extraction-shooter HUD)
+//   item-b-gone    -> reference `ibg`           (inventory triage grid)
+//   meta-tracker   -> reference `meta-tracker`  (node-and-edge graph)
+//   buried-in-print-> reference `bip`           (book spines + trendline)
+//   note-worthy    -> reference `noteworthy`    (musical staff + notes)
+//   on-the-move    -> reference `on-the-move`   (radar sweep + "?")
 //
-// Spec-derived abstract art (console.jsx has NO art for these — the reference
-// only ships the 6 public arts per design-spec-console.md "Project art" table;
-// these follow the spec's design rules: thin strokes 0.5–1.5, <=3 palette
-// colors, ~50% negative space, abstract scenes, no logos/screenshots,
-// viewBox 0 0 480 180). Each is RECONCILE-flagged below.
-//   cyberdeck, smart-machine, harness-brain,
-//   feedback-capture, fit-tracker, home-lab-consolidation
+// cyberdeck + smart-machine were spec-derived abstract until the 2026-05-16
+// Claude Design revision added dedicated art for both in console.jsx; they are
+// now faithfully ported (Task #24). smart-machine carries an SVG pulse on the
+// active LM-Studio route, frozen under prefers-reduced-motion.
+//
+// Spec-derived abstract art (console.jsx still has NO art for these; they
+// follow design-spec-console.md "Project art" rules: thin strokes 0.5–1.5,
+// <=3 palette colors, ~50% negative space, abstract scenes, no logos/
+// screenshots, viewBox 0 0 480 180). Each is RECONCILE-flagged below.
+//   harness-brain, feedback-capture, fit-tracker, home-lab-consolidation
+
+import { useReducedMotion } from './parts/useReducedMotion'
 
 interface ProjectArtProps {
   id: string
@@ -61,16 +68,21 @@ const SVG_PROPS = {
  * fills any side gutter (per spec "Screen area" note).
  */
 export function ProjectArt({ id, accent: c }: ProjectArtProps) {
+  const reduced = useReducedMotion()
   return (
     <svg {...SVG_PROPS} data-project-art aria-hidden="true">
-      {renderArt(id, c)}
+      {renderArt(id, c, reduced)}
     </svg>
   )
 }
 
-function renderArt(id: string, c: string) {
+function renderArt(id: string, c: string, reduced: boolean) {
   switch (id) {
     // ── Canonical-ported (from console.jsx) ──────────────────────────────────
+    case 'cyberdeck':
+      return <CyberdeckArt c={c} />
+    case 'smart-machine':
+      return <SmartMachineArt c={c} reduced={reduced} />
     case 'remnants':
       return <RemnantsArt c={c} />
     case 'item-b-gone':
@@ -85,12 +97,6 @@ function renderArt(id: string, c: string) {
       return <RadarArt c={c} />
 
     // ── Spec-derived abstract (no canonical art in console.jsx) ──────────────
-    // RECONCILE: no canonical art for cyberdeck in console.jsx — abstract per spec rules
-    case 'cyberdeck':
-      return <CyberdeckArt c={c} />
-    // RECONCILE: no canonical art for smart-machine in console.jsx — abstract per spec rules
-    case 'smart-machine':
-      return <RouterArt c={c} />
     // RECONCILE: no canonical art for harness-brain in console.jsx — abstract per spec rules
     case 'harness-brain':
       return <EvalArt c={c} />
@@ -319,53 +325,163 @@ function RadarArt({ c }: { c: string }) {
   )
 }
 
+/** Dual-display handheld cyberdeck schematic — grid backdrop, open shell with a
+ *  KOReader-ish upper page, lower touch panel + icon row, 12×3 keyboard grid,
+ *  status LEDs, Pi-5 callout. (console.jsx `kind === 'cyberdeck'`, 2026-05-16
+ *  Claude Design revision) */
+function CyberdeckArt({ c }: { c: string }) {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <line
+          key={`gx${i}`}
+          x1={W * 0.1}
+          y1={20 + i * 28}
+          x2={W * 0.9}
+          y2={20 + i * 28}
+          stroke={T.line}
+          strokeWidth="0.5"
+        />
+      ))}
+      <g transform={`translate(${(W - 280) / 2}, 28)`}>
+        <rect x="0" y="0" width="280" height="104" rx="6" fill="none" stroke={c} strokeWidth="1.6" />
+        <line x1="0" y1="52" x2="280" y2="52" stroke={T.line} strokeWidth="0.6" />
+        <rect x="14" y="8" width="252" height="36" fill={`${c}11`} stroke={c} strokeWidth="0.8" />
+        {[14, 19, 24, 29, 34, 39].map((y, i) => (
+          <line
+            key={`tl${i}`}
+            x1="22"
+            y1={y}
+            x2={252 - (i % 2 ? 20 : 0)}
+            y2={y}
+            stroke={T.mid}
+            strokeWidth="0.5"
+            opacity="0.7"
+          />
+        ))}
+        <rect x="244" y="11" width="14" height="2" fill={T.amber} opacity="0.85" />
+        <rect x="14" y="58" width="80" height="38" fill={`${c}11`} stroke={c} strokeWidth="0.8" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <rect
+            key={`ti${i}`}
+            x={22 + i * 18}
+            y="68"
+            width="10"
+            height="10"
+            fill="none"
+            stroke={c}
+            strokeWidth="0.6"
+          />
+        ))}
+        <line x1="22" y1="86" x2="86" y2="86" stroke={c} strokeWidth="0.6" opacity="0.5" />
+        {Array.from({ length: 36 }).map((_, i) => {
+          const cols = 12
+          const x = 104 + (i % cols) * 14
+          const y = 60 + Math.floor(i / cols) * 12
+          return (
+            <rect
+              key={`k${i}`}
+              x={x}
+              y={y}
+              width="10"
+              height="9"
+              rx="1"
+              fill="none"
+              stroke={c}
+              strokeWidth="0.6"
+            />
+          )
+        })}
+        <circle cx="20" cy="100" r="1.6" fill={T.sage} />
+        <circle cx="28" cy="100" r="1.6" fill={T.amber} opacity="0.6" />
+        <circle cx="260" cy="100" r="1.6" fill={T.coral} opacity="0.7" />
+      </g>
+      <g fontFamily='"JetBrains Mono", monospace' fontSize="9" fill={T.dim}>
+        <text x="20" y="160">PI 5 · DUAL DISPLAY · KOREADER</text>
+        <text x={W - 80} y="160">REV.01</text>
+      </g>
+    </>
+  )
+}
+
+/** SMART Machine dispatcher signal-flow — task-in arrow → two-stage box
+ *  (INTRP | DISP) → four outbound routes (SLM / LM Studio / Anthropic /
+ *  Escape). The LM-Studio route is the active one (amber, pulsing dot); the
+ *  rest are dim. The pulse freezes under prefers-reduced-motion.
+ *  (console.jsx `kind === 'smart-machine'`, 2026-05-16 Claude Design revision) */
+function SmartMachineArt({ c, reduced }: { c: string; reduced: boolean }) {
+  return (
+    <>
+      <line x1="20" y1="90" x2={W - 20} y2="90" stroke={T.line} strokeWidth="0.5" strokeDasharray="3 5" />
+      {/* incoming signal */}
+      <g>
+        <line x1="20" y1="90" x2="120" y2="90" stroke={T.sage} strokeWidth="1.6" />
+        <polygon points="118,87 124,90 118,93" fill={T.sage} />
+        <text x="22" y="82" fontFamily='"JetBrains Mono", monospace' fontSize="9" fill={T.dim}>
+          TASK IN
+        </text>
+      </g>
+      {/* central dispatcher — interpreter | dispatcher */}
+      <g transform="translate(124, 60)">
+        <rect x="0" y="0" width="86" height="60" fill="none" stroke={c} strokeWidth="1.6" />
+        <line x1="43" y1="0" x2="43" y2="60" stroke={c} strokeWidth="0.6" strokeDasharray="2 2" />
+        <text x="21.5" y="36" textAnchor="middle" fontFamily='"JetBrains Mono", monospace' fontSize="8" fill={T.mid}>
+          INTRP
+        </text>
+        <text x="64.5" y="36" textAnchor="middle" fontFamily='"JetBrains Mono", monospace' fontSize="8" fill={T.mid}>
+          DISP
+        </text>
+        <circle cx="21.5" cy="20" r="2" fill={c} />
+        <circle cx="64.5" cy="20" r="2" fill={c} />
+        <line x1="23" y1="20" x2="63" y2="20" stroke={c} strokeWidth="0.5" opacity="0.6" />
+      </g>
+      {/* destination 1 — local SLM (dim) */}
+      <g>
+        <line x1="210" y1="68" x2="332" y2="36" stroke={T.line} strokeWidth="1" />
+        <rect x="332" y="26" width="64" height="20" fill="none" stroke={T.mid} strokeWidth="0.8" />
+        <text x="364" y="40" textAnchor="middle" fontFamily='"JetBrains Mono", monospace' fontSize="9" fill={T.mid}>
+          SLM
+        </text>
+      </g>
+      {/* destination 2 — LM Studio (active route) */}
+      <g>
+        <line x1="210" y1="82" x2="332" y2="78" stroke={T.amber} strokeWidth="1.6" />
+        <polygon points="330,75 336,78 330,81" fill={T.amber} />
+        <rect x="332" y="68" width="64" height="20" fill={`${T.amber}22`} stroke={T.amber} strokeWidth="1.2" />
+        <text x="364" y="82" textAnchor="middle" fontFamily='"JetBrains Mono", monospace' fontSize="9" fill={T.amber}>
+          LM STUDIO
+        </text>
+        <circle cx="364" cy="92" r="1.8" fill={T.amber}>
+          {!reduced && (
+            <animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite" />
+          )}
+        </circle>
+      </g>
+      {/* destination 3 — Anthropic API (dim) */}
+      <g>
+        <line x1="210" y1="96" x2="332" y2="120" stroke={T.line} strokeWidth="1" />
+        <rect x="332" y="110" width="64" height="20" fill="none" stroke={T.mid} strokeWidth="0.8" />
+        <text x="364" y="124" textAnchor="middle" fontFamily='"JetBrains Mono", monospace' fontSize="9" fill={T.mid}>
+          ANTHROPIC
+        </text>
+      </g>
+      {/* destination 4 — escape hatch (dim, dashed) */}
+      <g>
+        <line x1="210" y1="110" x2="332" y2="152" stroke={T.line} strokeWidth="1" strokeDasharray="2 3" />
+        <rect x="332" y="142" width="64" height="20" fill="none" stroke={T.coral} strokeWidth="0.6" strokeDasharray="2 2" />
+        <text x="364" y="156" textAnchor="middle" fontFamily='"JetBrains Mono", monospace' fontSize="9" fill={T.coral} opacity="0.7">
+          ESCAPE
+        </text>
+      </g>
+    </>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Spec-derived abstract arts (console.jsx has no art for these — see RECONCILE
 // flags in renderArt). All follow design-spec-console.md "Project art" rules:
 // 0.5–1.5 strokes, <=3 palette colors, ~50% negative space, abstract only.
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Cyberdeck — dual-display handheld silhouette + signal arc. */
-function CyberdeckArt({ c }: { c: string }) {
-  return (
-    <g>
-      <rect x="150" y="46" width="180" height="88" fill="none" stroke={c} strokeWidth="1.5" />
-      <rect x="162" y="58" width="74" height="64" fill={`${c}15`} stroke={c} strokeWidth="1" />
-      <rect x="244" y="58" width="74" height="64" fill="none" stroke={T.amber} strokeWidth="1" />
-      <line x1="252" y1="74" x2="310" y2="74" stroke={T.amber} strokeWidth="0.8" />
-      <line x1="252" y1="88" x2="300" y2="88" stroke={T.amber} strokeWidth="0.8" />
-      <line x1="252" y1="102" x2="306" y2="102" stroke={T.amber} strokeWidth="0.8" />
-      <g transform="translate(360, 60)" stroke={c} strokeWidth="1" fill="none">
-        <path d="M0 30 Q 14 18 0 6" opacity="0.6" />
-        <path d="M10 36 Q 30 18 10 0" opacity="0.4" />
-      </g>
-      <line x1="120" y1="90" x2="150" y2="90" stroke={T.line} strokeWidth="1" strokeDasharray="2 4" />
-    </g>
-  )
-}
-
-/** SMART Machine — task in, classifier diamond, fan-out to model targets. */
-function RouterArt({ c }: { c: string }) {
-  const targets: [number, number, string][] = [
-    [380, 44, T.sage],
-    [380, 90, c],
-    [380, 136, T.amber],
-  ]
-  return (
-    <g>
-      <rect x="40" y="78" width="56" height="24" fill="none" stroke={T.mid} strokeWidth="1" />
-      <line x1="96" y1="90" x2="180" y2="90" stroke={c} strokeWidth="1" opacity="0.6" />
-      <polygon points="180,66 228,90 180,114 132,90" fill={`${c}15`} stroke={c} strokeWidth="1.5" />
-      {targets.map(([x, y, col], i) => (
-        <g key={i}>
-          <line x1="228" y1="90" x2={x} y2={y} stroke={col} strokeWidth="1" opacity="0.5" />
-          <rect x={x} y={y - 12} width="60" height="24" fill="none" stroke={col} strokeWidth="1" />
-          <circle cx={x + 10} cy={y} r="3" fill={col} />
-        </g>
-      ))}
-    </g>
-  )
-}
 
 /** Harness Brain — candidate bars against an 80% viability threshold line. */
 function EvalArt({ c }: { c: string }) {

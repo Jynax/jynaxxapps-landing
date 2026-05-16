@@ -43,4 +43,16 @@ test.describe('Console', () => {
     expect(await ticker.textContent()).toEqual(a);
     await context.close();
   });
+  test('SMART Machine active-route pulse animates (non-reduced motion)', async ({ page }) => {
+    await page.goto('/#console');
+    // Only the smart-machine art carries an SVG <animate> (active LM-Studio route).
+    await expect(page.locator('[data-project-art] animate')).toHaveCount(1);
+  });
+  test('reduced-motion: SMART Machine pulse frozen (no <animate>)', async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await context.newPage();
+    await page.goto('/#console');
+    await expect(page.locator('[data-project-art] animate')).toHaveCount(0);
+    await context.close();
+  });
 });
