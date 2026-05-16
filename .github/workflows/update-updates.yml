@@ -1,0 +1,66 @@
+name: Update Aggregate Changelog
+
+on:
+  repository_dispatch:
+    types: [changelog-entry]
+
+jobs:
+  update-aggregate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Prepend entry and trim
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const payload = context.payload.client_payload;
+
+            const required = ['date', 'project', 'projectUrl', 'category', 'title'];
+            for (const field of required) {
+              if (!payload[field]) {
+                core.setFailed(`Missing required field: ${field}`);
+                return;
+              }
+            }
+
+            const validCategories = ['new', 'improved', 'updated'];
+            if (!validCategories.includes(payload.category)) {
+              core.setFailed(`Invalid category: ${payload.category}`);
+              return;
+            }
+
+            let updates = [];
+            try {
+              updates = JSON.parse(fs.readFileSync('updates.json', 'utf8'));
+            } catch (e) {
+              console.log('No existing updates.json — creating fresh');
+            }
+
+            updates.unshift({
+              date: payload.date,
+              project: payload.project,
+              projectUrl: payload.projectUrl,
+              category: payload.category,
+              title: payload.title,
+            });
+
+            if (updates.length > 20) {
+              updates = updates.slice(0, 20);
+            }
+
+            fs.writeFileSync('updates.json', JSON.stringify(updates, null, 2) + '\n');
+
+      - name: Commit updated aggregate
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add updates.json
+          git diff --cached --quiet || (git commit -m "docs: update aggregate changelog [skip ci]" && git push)
