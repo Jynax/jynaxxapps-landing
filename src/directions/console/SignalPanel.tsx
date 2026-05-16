@@ -1,146 +1,111 @@
+import { useEffect, useState } from 'react'
 import { useLiveFeed } from '../parts/useLiveFeed'
 import { useReducedMotion } from '../parts/useReducedMotion'
 import { CON } from './accents'
 
-// Section 3 — Signal · Now Playing, reworked as an operator console for the
-// live feed (Task #26). Status LED (LIVE pulse), CRT readout of the fetched
-// activity with an amber oscilloscope sweep + scanlines, and a signal-meta
-// column (project / recency / channel / focus).
+// Section 3 — Signal · Live Feed, a faithful port of the canonical
+// `ConsoleLiveFeed` (May-16 reference `directions/console.jsx`). Task #27
+// replaced the #26 "operator console rework" (single LED + static waveform +
+// sweeping <animate> beam) which had silently diverged from the delivered
+// design (audit MISS #2/#3/#4 + the owner's oscilloscope request).
 //
-// Data now comes from useLiveFeed() (real /api/live, static JX_NOW fallback)
-// instead of reading JX_NOW directly. The oscilloscope sweep is the only SVG
-// animation; it freezes under reduced motion via the `{!reduced && <animate/>}`
-// gate — the same pattern as PulseDot and the #24 ProjectArt SMART pulse — and
-// is deliberately OUTSIDE [data-project-art] so it does not affect the #24
-// art-animate contract asserted in console.spec.ts.
+// The wave is a soft sine with a localized spike-burst that FLOWS — a React
+// interval re-derives the SVG path each tick (no SVG <animate>; the wave
+// itself is the only motion). Per the owner's request the flow runs at 40% of
+// the canonical speed (canonical 40ms tick → 100ms). Reduced motion does not
+// start the interval, so the path is frozen (phase 0) — honoring the round's
+// reduced-motion requirement without an <animate> node, and keeping
+// [data-signal-scope] OUTSIDE [data-project-art] so the #24 art-animate
+// contract (console.spec.ts) is untouched.
+//
+// Honest reconciliation: the canonical SIGNAL META 4th line is `rotate 7s`,
+// which implies the rotating queue we deliberately dropped (Decision 8.3 #3,
+// single current entry). Porting it verbatim would be a false claim
+// (feedback_data_integrity_hard_line), so the 4th line is `mode · single`.
 
 const mono = { fontFamily: 'var(--font-mono)' }
 
-// console.jsx splits "Now Playing" into a bold headline + a monospace sub-line;
-// our feed ships a single activity string. Derive both tiers (no fabricated
-// copy): headline = first sentence (up to & incl. the first '. '); sub = rest.
-function splitNow(line: string): { headline: string; sub: string } {
-  const i = line.indexOf('. ')
-  if (i === -1) return { headline: line, sub: '' }
-  return { headline: line.slice(0, i + 1), sub: line.slice(i + 2).trim() }
+// Canonical wave geometry (console.jsx ConsoleLiveFeed): soft primary sine +
+// gentle high-frequency ripple + a stationary sharp spike-burst at ~55–62%.
+const W = 360
+const H = 60
+
+function buildWavePath(phase: number): string {
+  const points: string[] = []
+  for (let x = 0; x <= W; x += 4) {
+    const t0 = (x / W) * Math.PI * 4 + phase / 60
+    const spike =
+      x > W * 0.55 && x < W * 0.62
+        ? Math.sin((x - W * 0.55) * 0.8) * 14
+        : 0
+    const y = H / 2 + Math.sin(t0) * 8 + Math.sin(t0 * 3.2) * 3 + spike
+    points.push(`${x},${y.toFixed(2)}`)
+  }
+  return `M ${points.join(' L ')}`
 }
 
-function StatusLed({ reduced }: { reduced: boolean }) {
+function StatusLed({
+  color,
+  label,
+  pulse,
+  reduced,
+}: {
+  color: string
+  label: string
+  pulse?: boolean
+  reduced: boolean
+}) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-      <div style={{ position: 'relative', width: 32, height: 32 }} aria-hidden="true">
-        {!reduced && (
-          <span
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: 99,
-              background: CON.amber,
-              animation: 'jxConPulse 1.6s ease-out infinite',
-              opacity: 0.4,
-            }}
-          />
-        )}
-        <span
-          style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            width: 16,
-            height: 16,
-            borderRadius: 99,
-            background: CON.amber,
-            boxShadow: `0 0 16px ${CON.amber}AA`,
-          }}
-        />
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span
+        aria-hidden="true"
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 99,
+          background: color,
+          boxShadow: `0 0 8px ${color}AA`,
+          animation: pulse && !reduced ? 'jxConLedPulse 1.4s ease-in-out infinite' : 'none',
+        }}
+      />
       <span
         style={{
           ...mono,
-          fontSize: 9,
-          letterSpacing: '0.22em',
-          color: CON.amber,
+          fontSize: 10,
+          color: CON.mid,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
         }}
       >
-        LIVE
+        {label}
       </span>
     </div>
   )
 }
 
-// Amber oscilloscope: a static waveform polyline + a sweeping beam. The beam's
-// horizontal travel is an SVG <animate> that is omitted entirely under reduced
-// motion (no <animate> node → frozen, matches the e2e contract).
-function Oscilloscope({ reduced }: { reduced: boolean }) {
-  const wave =
-    '0,24 10,18 20,28 30,12 40,30 50,20 60,16 70,30 80,10 90,26 100,22 ' +
-    '110,14 120,30 130,18 140,24 150,12 160,28 170,20 180,16 190,30 200,22 ' +
-    '210,14 220,26 230,18 240,24'
+function ReadoutLine({ k, v }: { k: string; v: string }) {
   return (
     <div
-      data-signal-scope
       style={{
-        position: 'relative',
-        marginTop: 14,
-        height: 48,
-        border: `1px solid ${CON.line}`,
-        background: `${CON.bg}`,
-        overflow: 'hidden',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        borderBottom: `1px dashed ${CON.line}`,
+        paddingBottom: 4,
       }}
     >
-      <svg
-        viewBox="0 0 240 48"
-        preserveAspectRatio="none"
-        width="100%"
-        height="48"
-        aria-hidden="true"
-        style={{ display: 'block' }}
-      >
-        <polyline
-          points={wave}
-          fill="none"
-          stroke={`${CON.amber}66`}
-          strokeWidth="1"
-        />
-        <line x1="0" y1="0" x2="0" y2="48" stroke={CON.amber} strokeWidth="2">
-          {!reduced && (
-            <animate
-              attributeName="x1"
-              values="0;240;0"
-              dur="2.4s"
-              repeatCount="indefinite"
-            />
-          )}
-          {!reduced && (
-            <animate
-              attributeName="x2"
-              values="0;240;0"
-              dur="2.4s"
-              repeatCount="indefinite"
-            />
-          )}
-        </line>
-      </svg>
-      {/* scanlines */}
-      <div
-        aria-hidden="true"
+      <span
         style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background:
-            'repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.28) 2px, rgba(0,0,0,0.28) 3px)',
+          ...mono,
+          fontSize: 10,
+          color: CON.dim,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
         }}
-      />
-    </div>
-  )
-}
-
-function MetaRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ color: CON.dim }}>{label}</span>
-      <span style={{ color: CON.ink, textAlign: 'right' }}>{value}</span>
+      >
+        {k}
+      </span>
+      <span style={{ ...mono, fontSize: 11, color: CON.ink }}>{v}</span>
     </div>
   )
 }
@@ -148,15 +113,24 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 export function SignalPanel() {
   const reduced = useReducedMotion()
   const feed = useLiveFeed()
-  const { headline, sub } = splitNow(feed.activity)
+  const [phase, setPhase] = useState(0)
+
+  useEffect(() => {
+    if (reduced) return
+    const id = setInterval(() => setPhase(p => (p + 1) % 360), 100)
+    return () => clearInterval(id)
+  }, [reduced])
+
+  const pathD = buildWavePath(phase)
   const channel = `${(feed.index + 1).toString().padStart(2, '0')}/${feed.total
     .toString()
     .padStart(2, '0')}`
+  const tag = `${feed.since.toUpperCase()}  ·  CH 01  ·  ${channel}  ·  ${feed.watchers} WATCHING`
 
   return (
     <div style={{ padding: '0 48px 64px' }}>
       <section
-        aria-label="Signal · Now Playing"
+        aria-label="Signal · Live Feed"
         style={{
           background: `${CON.bgAlt}99`,
           border: `1px solid ${CON.line}`,
@@ -177,76 +151,178 @@ export function SignalPanel() {
             background: `${CON.bgRaise}80`,
           }}
         >
-          <span style={{ color: CON.amber }}>◆ SIGNAL · NOW PLAYING</span>
-          <span style={{ color: CON.dim }}>CH {channel} · {feed.since.toUpperCase()}</span>
+          <span style={{ color: CON.amber }}>◆ SIGNAL · LIVE FEED</span>
+          <span style={{ color: CON.dim }}>{tag}</span>
         </div>
+
         <div style={{ padding: 28 }}>
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '48px 1fr 240px',
-              gap: 24,
-              alignItems: 'start',
+              gridTemplateColumns: '90px 1fr 200px',
+              gap: 28,
+              alignItems: 'stretch',
             }}
           >
-            <StatusLed reduced={reduced} />
-            <div data-signal-live>
-              <div
-                style={{
-                  fontSize: 26,
-                  fontWeight: 600,
-                  lineHeight: 1.3,
-                  color: CON.ink,
-                  textWrap: 'pretty',
-                }}
-              >
-                {headline}
-              </div>
-              {sub && (
-                <div
-                  style={{
-                    ...mono,
-                    fontSize: 13,
-                    color: CON.mid,
-                    marginTop: 6,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {sub}
-                </div>
-              )}
-              <Oscilloscope reduced={reduced} />
-            </div>
+            {/* STATE — status LED column */}
             <div
+              data-signal-state
               style={{
-                ...mono,
-                fontSize: 11,
-                lineHeight: 1.4,
+                border: `1px solid ${CON.line}`,
+                padding: '12px 14px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 8,
+                gap: 10,
+                alignItems: 'flex-start',
+                background: `${CON.bgRaise}66`,
               }}
             >
               <div
                 style={{
-                  fontSize: 10,
+                  ...mono,
+                  fontSize: 9,
                   color: CON.dim,
-                  letterSpacing: '0.2em',
+                  letterSpacing: '0.18em',
                   textTransform: 'uppercase',
-                  marginBottom: 2,
+                }}
+              >
+                state
+              </div>
+              <StatusLed color={CON.sage} label="LIVE" pulse reduced={reduced} />
+              <StatusLed color={CON.amber} label="ACTIVE" reduced={reduced} />
+              <StatusLed color={CON.dim} label="RX" reduced={reduced} />
+              <StatusLed color={CON.cyan} label="SYNC" reduced={reduced} />
+            </div>
+
+            {/* CRT readout + oscilloscope */}
+            <div
+              data-signal-live
+              style={{
+                border: `1px solid ${CON.line}`,
+                background: '#06090C',
+                padding: '14px 18px',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                data-signal-rx
+                style={{
+                  ...mono,
+                  fontSize: 11,
+                  color: CON.cyan,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}
+              >
+                ▸ rx · {feed.project ? feed.project.slug : 'no project tag'}
+              </div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 600,
+                  fontSize: 24,
+                  lineHeight: 1.3,
+                  color: CON.ink,
+                  textWrap: 'pretty',
+                  textShadow: `0 0 12px ${CON.amber}33`,
+                }}
+              >
+                {feed.activity}
+              </div>
+              <svg
+                data-signal-scope
+                viewBox={`0 0 ${W} ${H}`}
+                preserveAspectRatio="none"
+                width="100%"
+                height="60"
+                aria-hidden="true"
+                style={{ display: 'block', marginTop: 12, opacity: 0.95 }}
+              >
+                {[1, 2, 3].map(i => (
+                  <line
+                    key={`hl${i}`}
+                    x1="0"
+                    y1={(H / 4) * i}
+                    x2={W}
+                    y2={(H / 4) * i}
+                    stroke={CON.line}
+                    strokeWidth="0.5"
+                  />
+                ))}
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <line
+                    key={`vl${i}`}
+                    x1={(W / 12) * i}
+                    y1="0"
+                    x2={(W / 12) * i}
+                    y2={H}
+                    stroke={CON.line}
+                    strokeWidth="0.5"
+                  />
+                ))}
+                <line
+                  x1="0"
+                  y1={H / 2}
+                  x2={W}
+                  y2={H / 2}
+                  stroke={`${CON.amber}44`}
+                  strokeWidth="0.5"
+                />
+                <path
+                  data-signal-wave
+                  d={pathD}
+                  stroke={CON.amber}
+                  strokeWidth="1.3"
+                  fill="none"
+                  style={{ filter: `drop-shadow(0 0 4px ${CON.amber}99)` }}
+                />
+              </svg>
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  pointerEvents: 'none',
+                  background:
+                    'repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)',
+                }}
+              />
+            </div>
+
+            {/* SIGNAL META */}
+            <div
+              data-signal-meta
+              style={{
+                border: `1px solid ${CON.line}`,
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                background: `${CON.bgRaise}66`,
+              }}
+            >
+              <div
+                style={{
+                  ...mono,
+                  fontSize: 9,
+                  color: CON.dim,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
                 }}
               >
                 signal meta
               </div>
-              <MetaRow label="PROJECT" value={feed.project ? feed.project.name : '—'} />
-              <MetaRow label="STATUS" value={feed.project ? feed.project.status : 'workshop'} />
-              <MetaRow label="SINCE" value={feed.since} />
-              <MetaRow label="CHANNEL" value={channel} />
-              <MetaRow label="WATCHERS" value={String(feed.watchers)} />
+              <ReadoutLine k="elapsed" v={feed.since} />
+              <ReadoutLine k="channel" v={channel} />
+              <ReadoutLine k="source" v="kv·live" />
+              <ReadoutLine k="mode" v="single" />
             </div>
           </div>
         </div>
       </section>
+      <style>{`@keyframes jxConLedPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }`}</style>
     </div>
   )
 }

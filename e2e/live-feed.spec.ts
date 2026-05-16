@@ -92,25 +92,62 @@ test.describe('Live feed — Terminal phosphor keyboard (owns the spacebar fix)'
   });
 });
 
-test.describe('Live feed — Console oscilloscope', () => {
-  test('non-reduced motion: oscilloscope sweep animates and is OUTSIDE [data-project-art]', async ({ page }) => {
+test.describe('Live feed — Console oscilloscope (canonical ConsoleLiveFeed)', () => {
+  // The canonical reference oscilloscope is a soft-sine + localized spike-burst
+  // wave that FLOWS via a React interval re-deriving the SVG path each tick —
+  // there is NO SVG <animate> element (unlike the superseded #26 sweep-beam).
+  // Motion is asserted by the wave path `d` changing over time; reduced motion
+  // freezes the interval so `d` is stable. The scope must stay OUTSIDE
+  // [data-project-art] so the #24 art-animate contract (console.spec.ts) is
+  // untouched, and there must be zero <animate> (no SMIL slipped in).
+  test('non-reduced motion: wave path flows (d changes over time), no <animate>, OUTSIDE [data-project-art]', async ({ page }) => {
     await page.goto('/#console');
     const scope = page.locator('[data-signal-scope]');
     await expect(scope).toBeVisible();
-    expect(await scope.locator('animate').count()).toBeGreaterThan(0);
-    // Must not pollute the #24 art-animate contract (console.spec.ts asserts
-    // exactly one [data-project-art] animate — the SMART route pulse).
+    const wave = scope.locator('[data-signal-wave]');
+    await expect(wave).toBeVisible();
+    const d1 = await wave.getAttribute('d');
+    await page.waitForTimeout(500);
+    const d2 = await wave.getAttribute('d');
+    expect(d1).not.toBeNull();
+    expect(d2).not.toEqual(d1);
+    await expect(scope.locator('animate')).toHaveCount(0);
     await expect(page.locator('[data-project-art] [data-signal-scope]')).toHaveCount(0);
   });
 
-  test('reduced-motion: oscilloscope sweep frozen (no <animate>)', async ({ browser }) => {
+  test('reduced-motion: wave path frozen (d stable over time), no <animate>', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();
     await page.goto('/#console');
     const scope = page.locator('[data-signal-scope]');
     await expect(scope).toBeVisible();
+    const wave = scope.locator('[data-signal-wave]');
+    await expect(wave).toBeVisible();
+    const d1 = await wave.getAttribute('d');
+    await page.waitForTimeout(500);
+    const d2 = await wave.getAttribute('d');
+    expect(d1).not.toBeNull();
+    expect(d2).toEqual(d1);
     await expect(scope.locator('animate')).toHaveCount(0);
     await context.close();
+  });
+
+  test('canonical panel chrome: LIVE FEED label, STATE 4-LED column, ▸ rx readout, SIGNAL META fields', async ({ page }) => {
+    await mockLive(page);
+    await page.goto('/#console');
+    const root = page.locator('[data-direction="console"]');
+    await expect(root.getByText(/SIGNAL · LIVE FEED/)).toBeVisible();
+    const state = page.locator('[data-signal-state]');
+    await expect(state).toBeVisible();
+    for (const led of ['LIVE', 'ACTIVE', 'RX', 'SYNC']) {
+      await expect(state.getByText(led, { exact: true })).toBeVisible();
+    }
+    await expect(page.locator('[data-signal-rx]')).toContainText(/▸\s*rx\s*·/i);
+    const meta = page.locator('[data-signal-meta]');
+    await expect(meta).toBeVisible();
+    for (const k of ['elapsed', 'channel', 'source', 'mode']) {
+      await expect(meta.getByText(k, { exact: true })).toBeVisible();
+    }
   });
 });
 

@@ -12,7 +12,9 @@ interface PromptProps {
  *
  * Token mapping (per design-spec-terminal.md "Prompt"):
  *   - username `jynaxx`  → --term-accent  (green)
- *   - `@workshop` / `:` / `~` / `$` chrome → --term-fg-dim
+ *   - `@workshop` / `:` / `$` chrome → --term-fg-dim
+ *   - `~` → --term-fg-bright (canonical terminal.jsx:253 — audit #6 corrected
+ *     a shipped divergence that had dimmed it like the rest of the chrome)
  *   - command text → --term-fg  (primary amber)
  *
  * Never uses a proportional font — monospace exclusivity is required by the spec.
@@ -29,9 +31,9 @@ export function Prompt({ command, className }: PromptProps) {
       }}
     >
       <span style={{ color: 'var(--term-accent)' }}>jynaxx</span>
-      <span style={{ color: 'var(--term-fg-dim)' }}>@workshop</span>
+      <span data-prompt-host style={{ color: 'var(--term-fg-dim)' }}>@workshop</span>
       <span style={{ color: 'var(--term-fg-dim)' }}>:</span>
-      <span style={{ color: 'var(--term-fg-dim)' }}>~</span>
+      <span data-prompt-tilde style={{ color: 'var(--term-fg-bright)' }}>~</span>
       <span style={{ color: 'var(--term-fg-dim)' }}>$</span>
       {command && (
         <>

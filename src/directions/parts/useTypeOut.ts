@@ -14,7 +14,7 @@ import { useReducedMotion } from './useReducedMotion'
  * Reduced-motion: the whole string is shown immediately, with no interval and
  * no setState — lint-clean + frozen, same contract as useBootStream/useBlink.
  */
-export function useTypeOut(text: string, period = 28): number {
+export function useTypeOut(text: string, period = 70): number {
   const reduced = useReducedMotion()
   const [count, setCount] = useState(0)
 
