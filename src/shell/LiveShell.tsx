@@ -286,16 +286,16 @@ export function LiveShell() {
       {/* ── Content scroller ── */}
       <div
         ref={scrollerRef}
+        data-shell-scroller
         style={{
           flex: 1,
           overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
+          overflowX: 'hidden',
         }}
       >
         <Suspense
           fallback={
-            <div style={{ background: 'var(--term-bg)', flex: 1, minHeight: '100%' }} />
+            <div style={{ background: 'var(--term-bg)', minHeight: '100%' }} />
           }
         >
           <DirectionContent direction={direction} />

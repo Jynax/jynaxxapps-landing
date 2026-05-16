@@ -41,3 +41,29 @@ test('admin route bypasses the shell', async ({ page }) => {
   await page.goto('/#/admin');
   await expect(page.locator('[data-direction]')).toHaveCount(0);
 });
+
+// Regression: the content scroller must overflow and actually scroll so
+// below-the-fold content (project list, manifesto, contact, footer) is
+// reachable. Pre-fix the direction was a flex item with overflow:hidden,
+// collapsing it to viewport height and clipping everything below the fold.
+for (const dir of ['terminal', 'console'] as const) {
+  test(`content scroller scrolls past the fold (${dir})`, async ({ page }) => {
+    await page.goto(`/#${dir}`);
+    await expect(page.locator(`[data-direction="${dir}"]`)).toBeVisible();
+    const scroller = page.locator('[data-shell-scroller]');
+
+    const before = await scroller.evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+    }));
+    // Content must genuinely overflow the scroll viewport.
+    expect(before.scrollHeight).toBeGreaterThan(before.clientHeight + 100);
+
+    // And scrolling must actually move the viewport.
+    await scroller.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    const scrolledTop = await scroller.evaluate((el) => el.scrollTop);
+    expect(scrolledTop).toBeGreaterThan(0);
+  });
+}
