@@ -45,7 +45,16 @@ function Key({ label, lit, wide }: { label: string; lit: boolean; wide?: boolean
         background: lit ? 'var(--term-fg-bright)' : 'transparent',
         border: `1px solid ${lit ? 'var(--term-fg-bright)' : 'rgba(244,185,66,0.22)'}`,
         boxShadow: lit ? 'var(--term-glow-strong)' : 'none',
-        transition: 'none',
+        // CRT phosphor afterglow: a struck key snaps bright instantly
+        // (transition none while lit), then DECAYS back down over ~450ms when
+        // the type-out moves on. The text and the lit key share one counter
+        // (LiveNow `shown`) so they advance at the same rate — the decay just
+        // makes the keyboard READ at the text's cadence instead of snapping
+        // ~2x faster to the eye. Reduced motion: the global tokens.css
+        // `prefers-reduced-motion` rule forces transition-duration:0s → frozen.
+        transition: lit
+          ? 'none'
+          : 'color 450ms ease-out, background-color 450ms ease-out, border-color 450ms ease-out, box-shadow 450ms ease-out',
         userSelect: 'none',
       }}
     >
