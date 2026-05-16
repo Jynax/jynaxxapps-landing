@@ -28,6 +28,22 @@ test.describe('Terminal', () => {
     await expect(page.locator('[data-project-row]')).toHaveCount(12);
   });
 
+  test('help commands are accessible buttons that jump to their section', async ({ page }) => {
+    await page.goto('/#terminal');
+    const scroller = page.locator('[data-shell-scroller]');
+    await expect(scroller).toHaveJSProperty('scrollTop', 0);
+
+    // The command word is a real, keyboard-focusable button (not a bare span).
+    const lsBtn = page.getByRole('button', { name: 'Jump to ls section' });
+    await expect(lsBtn).toBeVisible();
+    await lsBtn.focus();
+    await expect(lsBtn).toBeFocused();
+
+    await lsBtn.click();
+    await expect(page.locator('[data-term-section="ls"]')).toBeInViewport();
+    expect(await scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  });
+
   test('reduced-motion: all 8 boot lines render immediately, no streaming', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();
