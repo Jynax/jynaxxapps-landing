@@ -56,6 +56,16 @@ test.describe('liveStore — pruneAndCap', () => {
     expect(out.map(e => e.id)).toEqual(['e4', 'e3', 'e2']);
   });
 
+  test('normalises out-of-order input to newest-first before capping', () => {
+    const e1 = entry({ id: 'e1', updated: new Date(NOW - 4000).toISOString() });
+    const e2 = entry({ id: 'e2', updated: new Date(NOW - 3000).toISOString() });
+    const e3 = entry({ id: 'e3', updated: new Date(NOW - 2000).toISOString() });
+    const e4 = entry({ id: 'e4', updated: new Date(NOW - 1000).toISOString() });
+    // Shuffled input — pruneAndCap must sort newest-first, then cap to 3.
+    const out = pruneAndCap([e1, e3, e2, e4], NOW);
+    expect(out.map(e => e.id)).toEqual(['e4', 'e3', 'e2']);
+  });
+
   test('empty in → empty out', () => {
     expect(pruneAndCap([], NOW)).toEqual([]);
   });

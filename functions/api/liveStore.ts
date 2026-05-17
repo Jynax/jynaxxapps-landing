@@ -33,13 +33,12 @@ export function validatePayload(payload: unknown): ValidateResult {
     return { ok: false, error: 'publicSafe must be true or omitted' };
   }
 
-  const source: Source =
-    typeof p.source === 'string' && (SOURCES as readonly string[]).includes(p.source)
-      ? (p.source as Source)
-      : p.source === undefined
-        ? 'wcc'
-        : ('__invalid__' as Source);
-  if (!(SOURCES as readonly string[]).includes(source)) {
+  let source: Source;
+  if (p.source === undefined) {
+    source = 'wcc';
+  } else if (typeof p.source === 'string' && (SOURCES as readonly string[]).includes(p.source)) {
+    source = p.source as Source;
+  } else {
     return { ok: false, error: 'source must be "wcc" or "lcc"' };
   }
 
