@@ -22,7 +22,7 @@ import { JX_PROJECTS, JX_MANIFESTO } from '../data/jxData'
 import { useBlink } from './parts/useBlink'
 import { useReducedMotion } from './parts/useReducedMotion'
 import { useLiveFeed } from './parts/useLiveFeed'
-import { ARC, CART_ACCENTS, accentAt } from './arcade/tokens'
+import { ARC, CART_ACCENTS, accentAt, fmt } from './arcade/tokens'
 import { Starfield } from './arcade/Starfield'
 import { PlayerSprite } from './arcade/PlayerSprite'
 import { Cartridge } from './arcade/Cartridge'
@@ -30,6 +30,8 @@ import { CartDossier } from './arcade/CartDossier'
 import { DevKitRow, DevKitInline } from './arcade/DevKit'
 import { PowerUp } from './arcade/PowerUp'
 import { ArcadeLiveStrip } from './arcade/ArcadeLiveStrip'
+import { CoinGameOverlay } from './arcade/coingame/CoinGameOverlay'
+import { ARCADE_GAMES } from './arcade/coingame/games'
 
 const px = { fontFamily: 'var(--font-pixel)' }
 const mono = { fontFamily: 'var(--font-vt)' }
@@ -50,6 +52,9 @@ export default function Arcade() {
   const feed = useLiveFeed()
   const [selectedId, setSelectedId] = useState<string | null>('cyberdeck')
   const select = (id: string) => setSelectedId(prev => (prev === id ? null : id))
+  const [coinOpen, setCoinOpen] = useState(false)
+  const [gameIndex, setGameIndex] = useState(0)
+  const [hiScore, setHiScore] = useState(1247)
 
   const loadedPublic = publicProjects.find(p => p.id === selectedId) ?? null
   const loadedWorkshop = workshopProjects.find(p => p.id === selectedId) ?? null
@@ -98,7 +103,7 @@ export default function Arcade() {
             1UP &nbsp; <span style={{ color: ARC.ink }}>JYNAXX</span>
           </span>
           <span style={{ color: ARC.neon2 }}>
-            HI-SCORE &nbsp; <span style={{ color: ARC.ink, opacity: blink ? 1 : 0.4 }}>1,247</span>
+            HI-SCORE &nbsp; <span style={{ color: ARC.ink, opacity: blink ? 1 : 0.4 }}>{fmt(hiScore)}</span>
           </span>
           <span style={{ color: ARC.neon1 }}>
             LEVEL 04 &nbsp; <span style={{ color: ARC.ink }}>WORKSHOP</span>
@@ -131,9 +136,26 @@ export default function Arcade() {
           <div style={{ ...mono, fontSize: 22, marginTop: 12, color: ARC.ink, opacity: 0.9 }}>
             ━━━━━━ a workshop for digital machines ━━━━━━
           </div>
-          <div style={{ ...px, fontSize: 9, color: ARC.neon3, marginTop: 16, opacity: coin ? 1 : 0.2, letterSpacing: '0.2em' }}>
+          <button
+            type="button"
+            data-arcade-insert-coin
+            onClick={() => setCoinOpen(true)}
+            aria-label="Insert coin — play a hidden mini-game"
+            style={{
+              ...px,
+              fontSize: 9,
+              color: ARC.neon3,
+              marginTop: 16,
+              opacity: coin ? 1 : 0.2,
+              letterSpacing: '0.2em',
+              background: 'transparent',
+              border: 'none',
+              padding: 4,
+              cursor: 'pointer',
+            }}
+          >
             ◇ INSERT COIN ◇
-          </div>
+          </button>
         </div>
 
         {/* About strip — player profile */}
@@ -247,6 +269,17 @@ export default function Arcade() {
           </span>
         </div>
       </div>
+
+      {coinOpen && (
+        <CoinGameOverlay
+          index={gameIndex}
+          hiScore={hiScore}
+          reduced={reduced}
+          onAdvance={() => setGameIndex(i => (i + 1) % ARCADE_GAMES.length)}
+          onScore={s => setHiScore(h => Math.max(h, s))}
+          onClose={() => setCoinOpen(false)}
+        />
+      )}
     </section>
   )
 }
