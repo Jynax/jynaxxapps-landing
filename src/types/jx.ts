@@ -29,16 +29,29 @@ export type Project = {
   group: 'public' | 'workshop';
 };
 
-// Wire shape for GET/POST /api/live (Task #26). Single current entry —
-// Decision 8.3 #3 (S153) settled the api-contracts.md open question in favour
-// of one entry, not a rotating queue, so there is no `entries[]` wrapper.
+// Wire shape for GET/POST /api/live (Task #26 → evolved Task #30).
+//
+// Decision 8.3 #3 (single current entry, S153) is DELIBERATELY REVERSED by
+// Task #30 (spec live-feed-evolution-spec-2026-05-17, decisions.md): the feed
+// is now a server-managed capped rotating set. The stored KV value is an
+// envelope `{ entries: LiveFeedEntry[] }`, newest-first, cap 3, 24h TTL.
+//
 // `project` is a JX_PROJECTS[].id (or null); the frontend hook resolves it to
-// the full Project. `updated` is server-stamped ISO on POST (never client-sent).
-export type LiveEntry = {
+// the full Project. `id`/`updated` are server-generated on POST (never client-
+// sent). `publicSafe` is REQUIRED true — defense-in-depth privacy gate
+// (spec §2); the server rejects any insert missing/!== true.
+export type LiveFeedEntry = {
+  id: string;
   activity: string;
   project: string | null;
   since: string;
-  updated: string;
+  updated: string; // server-stamped ISO-8601 on insert
+  publicSafe: true;
+  source: 'wcc' | 'lcc';
+};
+
+export type LiveFeedEnvelope = {
+  entries: LiveFeedEntry[];
 };
 
 export type ContactKind = 'email' | 'github' | 'bluesky' | 'rss';
