@@ -20,7 +20,9 @@
 // Usage:
 //   node scripts/post-live.mjs "wiring up a new landing-page widget"
 //   node scripts/post-live.mjs "tidying a side project" --project remnants --since 1h
-//   node scripts/post-live.mjs --delete        # clear the current activity
+//   node scripts/post-live.mjs "lcc-contributed line" --source lcc
+//   node scripts/post-live.mjs --delete                 # clear ALL entries
+//   node scripts/post-live.mjs --delete --id <entryId>  # clear one entry
 
 const API = process.env.LIVE_FEED_URL || 'https://jynaxxapps.com/api/live'
 
@@ -51,8 +53,9 @@ for (let i = 0; i < argv.length; i++) {
 const auth = { Authorization: `Bearer ${token}` }
 
 if (opts.delete) {
-  const res = await fetch(API, { method: 'DELETE', headers: auth })
-  console.log(`DELETE /api/live → ${res.status}`)
+  const url = opts.id ? `${API}?id=${encodeURIComponent(opts.id)}` : API
+  const res = await fetch(url, { method: 'DELETE', headers: auth })
+  console.log(`DELETE ${opts.id ? `(id=${opts.id})` : '(all)'} → ${res.status}`)
   process.exit(res.ok ? 0 : 1)
 }
 
@@ -62,10 +65,16 @@ if (!activity) {
   process.exit(1)
 }
 
+const source = opts.source === 'lcc' ? 'lcc' : 'wcc'
+
 const body = {
   activity,
   project: opts.project || null,
   since: opts.since || 'today',
+  // publicSafe is sent true by construction — the line is Michael-approved
+  // (WCC) or LCC-tagged-then-approved. The server re-asserts it (spec §2).
+  publicSafe: true,
+  source,
 }
 
 const res = await fetch(API, {
@@ -79,4 +88,8 @@ if (!res.ok) {
   process.exit(1)
 }
 
-console.log(`POST /api/live → ${res.status} · "${activity}"`)
+const out = await res.json().catch(() => ({}))
+console.log(
+  `POST /api/live → ${res.status} · "${activity}" [${source}]` +
+    (out && out.count ? ` · ${out.count}/${out.cap} in set` : ''),
+)
