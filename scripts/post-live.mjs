@@ -53,6 +53,13 @@ for (let i = 0; i < argv.length; i++) {
 const auth = { Authorization: `Bearer ${token}` }
 
 if (opts.delete) {
+  // Guard a present-but-empty `--id` (parser yields '' when --id has no
+  // value): without this it would silently fall through to clear-ALL, a
+  // destructive surprise. Require an explicit value, or omit --id entirely.
+  if ('id' in opts && !opts.id) {
+    console.error('--id requires a value (omit --id entirely to clear ALL)')
+    process.exit(1)
+  }
   const url = opts.id ? `${API}?id=${encodeURIComponent(opts.id)}` : API
   const res = await fetch(url, { method: 'DELETE', headers: auth })
   console.log(`DELETE ${opts.id ? `(id=${opts.id})` : '(all)'} → ${res.status}`)
