@@ -166,3 +166,42 @@ test.describe('Live feed — Terminal reduced-motion freeze', () => {
     await context.close();
   });
 });
+
+test.describe('Live feed — rotation (Task #30)', () => {
+  const THREE = JSON.stringify({
+    entries: [
+      { id: 'a', activity: 'E2E-ROT-ALPHA newest', project: 'remnants', since: 'now', updated: '2026-05-17T12:00:03Z', publicSafe: true, source: 'wcc' },
+      { id: 'b', activity: 'E2E-ROT-BRAVO middle', project: null, since: '5m', updated: '2026-05-17T12:00:02Z', publicSafe: true, source: 'wcc' },
+      { id: 'c', activity: 'E2E-ROT-CHARLIE oldest', project: null, since: '9m', updated: '2026-05-17T12:00:01Z', publicSafe: true, source: 'lcc' },
+    ],
+  });
+
+  test('Console cycles through the set and wraps (newest-first start)', async ({ page }) => {
+    await page.route('**/api/live', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: THREE }),
+    );
+    await page.goto('/#console');
+    const live = page.locator('[data-signal-live]');
+    await expect(live).toBeVisible();
+    await expect(live).toContainText('E2E-ROT-ALPHA'); // newest shown first
+    await expect(live).toContainText('E2E-ROT-BRAVO', { timeout: 9000 });
+    await expect(live).toContainText('E2E-ROT-CHARLIE', { timeout: 9000 });
+    await expect(live).toContainText('E2E-ROT-ALPHA', { timeout: 9000 }); // wrapped
+  });
+
+  test('reduced-motion: newest entry only, static, no rotation, no <animate>', async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await context.newPage();
+    await page.route('**/api/live', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: THREE }),
+    );
+    await page.goto('/#console');
+    const live = page.locator('[data-signal-live]');
+    await expect(live).toContainText('E2E-ROT-ALPHA');
+    await page.waitForTimeout(8000);
+    await expect(live).toContainText('E2E-ROT-ALPHA'); // never advanced
+    await expect(live).not.toContainText('E2E-ROT-BRAVO');
+    await expect(page.locator('[data-direction="console"] animate')).toHaveCount(0);
+    await context.close();
+  });
+});
