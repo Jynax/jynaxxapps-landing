@@ -1,22 +1,31 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-// Task #26 — live activity feed. Single current entry (Decision 8.3 #3),
-// real GET/POST /api/live, per-direction widgets, reduced-motion freeze.
+// Task #26 → Task #30 — live activity feed. Capped rotating set (Decision
+// 8.3 #3 single-entry DELIBERATELY REVERSED), real GET/POST /api/live,
+// per-direction widgets, reduced-motion freeze.
 //
-// Pages Functions are NOT served by `vite dev` (same as /api/content, see
-// cms-schema.spec.ts), so the hook must gracefully fall back to the static
-// JX_NOW line. The real consumer contract is exercised here by mocking the
-// /api/live route with the locked single-entry JSON shape.
+// Pages Functions are NOT served by `vite dev` (same as /api/content), so the
+// hook gracefully falls back to the static JX_NOW line. The consumer contract
+// is exercised by mocking /api/live with the locked ENVELOPE shape. Server
+// cap/TTL/publicSafe rules are unit-tested in live-store.spec.ts.
 
 const PROBE = 'E2E-LIVE-PROBE rewiring the flux capacitor';
 
-// Locked wire shape: { activity, project, since, updated } — no entries[] wrapper.
+// Locked wire shape: { entries: LiveFeedEntry[] } — single-entry envelope
+// here so the pre-existing per-direction assertions stay valid.
 const LIVE_JSON = JSON.stringify({
-  activity: PROBE,
-  project: 'remnants',
-  since: '3m',
-  updated: '2026-05-16T18:42:00Z',
+  entries: [
+    {
+      id: 'probe-1',
+      activity: PROBE,
+      project: 'remnants',
+      since: '3m',
+      updated: '2026-05-16T18:42:00Z',
+      publicSafe: true,
+      source: 'wcc',
+    },
+  ],
 });
 
 async function mockLive(page: Page) {
@@ -163,6 +172,45 @@ test.describe('Live feed — Terminal reduced-motion freeze', () => {
     await expect(live).toContainText(PROBE, { timeout: 1000 });
     // No SVG animation introduced by the live widget under reduced motion.
     await expect(live.locator('animate')).toHaveCount(0);
+    await context.close();
+  });
+});
+
+test.describe('Live feed — rotation (Task #30)', () => {
+  const THREE = JSON.stringify({
+    entries: [
+      { id: 'a', activity: 'E2E-ROT-ALPHA newest', project: 'remnants', since: 'now', updated: '2026-05-17T12:00:03Z', publicSafe: true, source: 'wcc' },
+      { id: 'b', activity: 'E2E-ROT-BRAVO middle', project: null, since: '5m', updated: '2026-05-17T12:00:02Z', publicSafe: true, source: 'wcc' },
+      { id: 'c', activity: 'E2E-ROT-CHARLIE oldest', project: null, since: '9m', updated: '2026-05-17T12:00:01Z', publicSafe: true, source: 'lcc' },
+    ],
+  });
+
+  test('Console cycles through the set and wraps (newest-first start)', async ({ page }) => {
+    await page.route('**/api/live', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: THREE }),
+    );
+    await page.goto('/#console');
+    const live = page.locator('[data-signal-live]');
+    await expect(live).toBeVisible();
+    await expect(live).toContainText('E2E-ROT-ALPHA'); // newest shown first
+    await expect(live).toContainText('E2E-ROT-BRAVO', { timeout: 9000 });
+    await expect(live).toContainText('E2E-ROT-CHARLIE', { timeout: 9000 });
+    await expect(live).toContainText('E2E-ROT-ALPHA', { timeout: 9000 }); // wrapped
+  });
+
+  test('reduced-motion: newest entry only, static, no rotation, no <animate>', async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await context.newPage();
+    await page.route('**/api/live', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: THREE }),
+    );
+    await page.goto('/#console');
+    const live = page.locator('[data-signal-live]');
+    await expect(live).toContainText('E2E-ROT-ALPHA');
+    await page.waitForTimeout(8000);
+    await expect(live).toContainText('E2E-ROT-ALPHA'); // never advanced
+    await expect(live).not.toContainText('E2E-ROT-BRAVO');
+    await expect(page.locator('[data-direction="console"] animate')).toHaveCount(0);
     await context.close();
   });
 });

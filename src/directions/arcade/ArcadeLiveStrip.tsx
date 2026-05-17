@@ -95,7 +95,7 @@ export function ArcadeLiveStrip({
                 &nbsp;<span style={{ color: ARC.neon3, opacity: coin ? 1 : 0.3 }}>★</span>
               </p>
               <div style={{ ...px, fontSize: 8, color: ARC.dim, letterSpacing: '0.18em', marginTop: 18 }}>
-                LIVE FEED · SINGLE CURRENT ENTRY · SAVE SLOT 87 · AUTOSAVED
+                LIVE FEED · {feed.total > 1 ? 'ROTATING SET' : 'SINGLE ENTRY'} · SAVE SLOT 87 · AUTOSAVED
               </div>
             </div>
             <div style={{ borderLeft: `2px solid ${ARC.neon2}55`, paddingLeft: 22 }}>

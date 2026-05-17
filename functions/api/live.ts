@@ -1,18 +1,17 @@
 // GET/POST/DELETE /api/live — the "what Jynaxx is doing right now" feed.
 //
-// Single current entry (Decision 8.3 #3, S153) — the api-contracts.md open
-// question was settled in favour of one entry, not a rotating queue, so the
-// stored value is a bare { activity, project, since, updated } object with no
-// entries[] wrapper. Reuses the existing CONTENT KV binding (one namespace,
-// distinct key) — same pattern as functions/api/content.ts.
+// Task #30: capped rotating set (Decision 8.3 #3 single-entry DELIBERATELY
+// REVERSED — see decisions.md + live-feed-evolution-spec-2026-05-17). Stored
+// KV value at `live-now` is `{ entries: LiveFeedEntry[] }`, newest-first,
+// cap 3, 24h TTL. All rules live in ./liveStore (pure, unit-tested). Reuses
+// the existing CONTENT KV binding (one namespace, distinct key).
 //
-// Writes are NOT gated by the interactive Google OAuth used for /admin
-// content edits: the only writer is Claude Code posting headlessly during the
-// Stage-1 session-start ritual, so POST/DELETE use a static service token
-// (LIVE_FEED_TOKEN) supplied via the CF environment. The token is sourced
-// out-of-band from the credential store and is never committed, never placed
-// in a shell argument, and never written to settings — see the session-start
-// skill's Stage-1 step and memory `feedback_no_secrets_in_shell_args`.
+// publicSafe is defense-in-depth (spec §2): the server forces it true on
+// insert and rejects any client-sent non-true. Writes use a static service
+// token (LIVE_FEED_TOKEN) via the CF environment — never committed, never a
+// shell arg, never in settings (memory `feedback_no_secrets_in_shell_args`).
+import type { LiveFeedEntry, LiveFeedEnvelope } from '../../src/types/jx'
+import { CAP, buildEntry, pruneAndCap, validatePayload } from './liveStore'
 
 interface Env {
   CONTENT: KVNamespace
@@ -27,21 +26,36 @@ const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =
     headers: { 'Content-Type': 'application/json', ...extra },
   })
 
-export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const stored = await context.env.CONTENT.get(LIVE_KEY, 'text')
+async function readEntries(env: Env): Promise<LiveFeedEntry[]> {
+  const stored = await env.CONTENT.get(LIVE_KEY, 'text')
+  if (!stored) return []
+  try {
+    const parsed = JSON.parse(stored) as Partial<LiveFeedEnvelope>
+    return Array.isArray(parsed?.entries) ? (parsed.entries as LiveFeedEntry[]) : []
+  } catch {
+    return [] // legacy single-entry value or corrupt → treated as empty
+  }
+}
 
-  // Mirror content.ts: absent → 404 + null. The frontend hook treats any
-  // non-OK / non-JSON response as "keep the static JX_NOW fallback", so a
-  // fresh deploy with no entry yet degrades gracefully.
-  if (!stored) {
+async function writeEntries(env: Env, entries: LiveFeedEntry[]): Promise<void> {
+  await env.CONTENT.put(LIVE_KEY, JSON.stringify({ entries } satisfies LiveFeedEnvelope))
+}
+
+export const onRequestGet: PagesFunction<Env> = async (context) => {
+  const raw = await readEntries(context.env)
+  const live = pruneAndCap(raw, Date.now())
+
+  // Persist the pruned set so stale entries don't linger in KV across reads.
+  if (live.length !== raw.length) await writeEntries(context.env, live)
+
+  // Empty/all-expired → 404 + null (preserves the hook's graceful-fallback
+  // contract: any non-OK / non-JSON keeps the static JX_NOW line).
+  if (live.length === 0) {
     return json(null, 404, { 'Cache-Control': 'public, max-age=15' })
   }
 
-  return new Response(stored, {
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'public, max-age=15',
-    },
+  return json({ entries: live } satisfies LiveFeedEnvelope, 200, {
+    'Cache-Control': 'public, max-age=15',
   })
 }
 
@@ -49,38 +63,44 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const denied = requireServiceToken(context.request, context.env.LIVE_FEED_TOKEN)
   if (denied) return denied
 
-  let payload: { activity?: unknown; project?: unknown; since?: unknown }
+  let payload: unknown
   try {
-    payload = (await context.request.json()) as typeof payload
+    payload = await context.request.json()
   } catch {
     return json({ error: 'Invalid JSON' }, 400)
   }
 
-  const activity = typeof payload.activity === 'string' ? payload.activity.trim() : ''
-  if (!activity) {
-    return json({ error: 'activity is required' }, 400)
-  }
+  const result = validatePayload(payload)
+  if (!result.ok) return json({ error: result.error }, 400)
 
-  const entry = {
-    activity,
-    project: typeof payload.project === 'string' && payload.project ? payload.project : null,
-    since: typeof payload.since === 'string' && payload.since ? payload.since : 'today',
-    updated: new Date().toISOString(), // server-stamped; client never sends this
-  }
+  const now = Date.now()
+  const entry = buildEntry(result.value, now)
+  const current = await readEntries(context.env)
+  const next = pruneAndCap([entry, ...current], now) // prepend newest, then cap/TTL
+  await writeEntries(context.env, next)
 
-  await context.env.CONTENT.put(LIVE_KEY, JSON.stringify(entry))
-
-  return json({ ok: true, entry })
+  return json({ ok: true, entry, count: next.length, cap: CAP })
 }
 
-// Minimal DELETE — single-entry model makes pruning largely moot (writes
-// overwrite), but clearing the current activity is occasionally useful.
+// DELETE clears ALL entries, or one by `?id=<id>` (spec §6).
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const denied = requireServiceToken(context.request, context.env.LIVE_FEED_TOKEN)
   if (denied) return denied
 
-  await context.env.CONTENT.delete(LIVE_KEY)
-  return json({ ok: true })
+  const id = new URL(context.request.url).searchParams.get('id')
+  if (!id) {
+    await context.env.CONTENT.delete(LIVE_KEY)
+    return json({ ok: true, cleared: 'all' })
+  }
+
+  const current = await readEntries(context.env)
+  const next = current.filter(e => e.id !== id)
+  if (next.length === 0) {
+    await context.env.CONTENT.delete(LIVE_KEY)
+  } else {
+    await writeEntries(context.env, next)
+  }
+  return json({ ok: true, cleared: id, count: next.length })
 }
 
 function requireServiceToken(request: Request, expected: string): Response | null {

@@ -18,10 +18,10 @@ import { CON } from './accents'
 // [data-signal-scope] OUTSIDE [data-project-art] so the #24 art-animate
 // contract (console.spec.ts) is untouched.
 //
-// Honest reconciliation: the canonical SIGNAL META 4th line is `rotate 7s`,
-// which implies the rotating queue we deliberately dropped (Decision 8.3 #3,
-// single current entry). Porting it verbatim would be a false claim
-// (feedback_data_integrity_hard_line), so the 4th line is `mode · single`.
+// Task #30 reverses Decision 8.3 #3 (single-entry): the feed is again a
+// rotating set, so the canonical SIGNAL META 4th line `rotate 7s` is now
+// truthful and is rendered as such when the set has >1 entry (and `single`
+// when only one is live — staying honest per feedback_data_integrity_hard_line).
 
 const mono = { fontFamily: 'var(--font-mono)' }
 
@@ -317,7 +317,7 @@ export function SignalPanel() {
               <ReadoutLine k="elapsed" v={feed.since} />
               <ReadoutLine k="channel" v={channel} />
               <ReadoutLine k="source" v="kv·live" />
-              <ReadoutLine k="mode" v="single" />
+              <ReadoutLine k="mode" v={feed.total > 1 ? 'rotate 7s' : 'single'} />
             </div>
           </div>
         </div>
