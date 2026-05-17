@@ -9,8 +9,9 @@
 // Round decisions applied:
 //  • Visitor reactions are NOT ported (Decision 8.3 #4 — stripped this round;
 //    deferred Phase 2). The reference's reactions block is intentionally absent.
-//  • The live strip is built against the `useLiveFeed` stub contract; Task #26
-//    swaps only the data source (single current entry — Decision 8.3 #3).
+//  • The live strip consumes the `useLiveFeed` contract; Task #30 evolved the
+//    feed to a capped rotating set (Decision 8.3 #3 reversed) — the widget
+//    renders the current rotating entry; no structural change here.
 //  • Named bio retained ("michael chartrand", maker voice — Decision 8.2).
 //
 // Motion: JS blink cues freeze via useBlink; SVG SMIL freezes via the
