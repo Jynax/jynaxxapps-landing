@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ARC } from '../tokens'
 import { ARCADE_GAMES } from './games'
+import { useArcadePlays } from './useArcadePlays'
 
 type Phase = 'attract' | 'playing' | 'over'
 
@@ -42,11 +43,13 @@ export function CoinGameOverlay({
     phaseRef.current = phase
   }, [phase])
   const panelRef = useRef<HTMLDivElement>(null)
+  const { count: plays, registerPlay } = useArcadePlays()
 
   // "Insert coin": start from attract, or rotate to the next game from over.
   const insertCoin = () => {
     if (phaseRef.current === 'playing') return
     if (phaseRef.current === 'over') onAdvance()
+    registerPlay()
     setPhase('playing')
   }
 
@@ -225,6 +228,20 @@ export function CoinGameOverlay({
             >
               SPACE / ENTER · ESC TO EXIT
             </div>
+            {plays !== null && (
+              <div
+                data-coingame-plays
+                style={{
+                  ...px,
+                  fontSize: 8,
+                  letterSpacing: '0.16em',
+                  color: ARC.neon2,
+                  marginTop: 8,
+                }}
+              >
+                ▸ {plays.toLocaleString('en-US')} EXPLORERS HAVE FOUND THIS ◂
+              </div>
+            )}
           </div>
         )}
 
@@ -289,6 +306,20 @@ export function CoinGameOverlay({
             >
               SPACE / ENTER · ESC TO EXIT
             </div>
+            {plays !== null && (
+              <div
+                data-coingame-plays
+                style={{
+                  ...px,
+                  fontSize: 8,
+                  letterSpacing: '0.16em',
+                  color: ARC.neon2,
+                  marginTop: 8,
+                }}
+              >
+                ▸ {plays.toLocaleString('en-US')} EXPLORERS HAVE FOUND THIS ◂
+              </div>
+            )}
           </div>
         )}
       </div>

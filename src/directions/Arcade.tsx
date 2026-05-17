@@ -45,6 +45,45 @@ const panel = {
   boxShadow: `0 0 24px ${ARC.neon2}33`,
 } as const
 
+// Persistent personal-best for the Arcade easter-egg (Task #31). Per-browser
+// (localStorage) so the achieved-on date is meaningful across reloads; before
+// anyone beats the seeded baseline there is no real date to show.
+const HI_KEY = 'jx_arcade_hiscore'
+const HI_SEED = 1247
+
+interface HiScore {
+  score: number
+  date: string | null // yyyy-mm-dd of when the best was set; null = seed
+}
+
+function readStoredHi(): HiScore {
+  if (typeof window === 'undefined') return { score: HI_SEED, date: null }
+  try {
+    const raw = localStorage.getItem(HI_KEY)
+    if (raw) {
+      const p = JSON.parse(raw) as { score?: unknown; date?: unknown }
+      if (typeof p.score === 'number' && p.score >= 0) {
+        return { score: p.score, date: typeof p.date === 'string' ? p.date : null }
+      }
+    }
+  } catch {
+    /* corrupt / unavailable — fall back to seed */
+  }
+  return { score: HI_SEED, date: null }
+}
+
+function todayISO(): string {
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
+
+function fmtHiDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return m ? `${m[1].slice(2)}.${m[2]}.${m[3]}` : iso
+}
+
 export default function Arcade() {
   const reduced = useReducedMotion()
   const blink = useBlink(420)
@@ -54,7 +93,17 @@ export default function Arcade() {
   const select = (id: string) => setSelectedId(prev => (prev === id ? null : id))
   const [coinOpen, setCoinOpen] = useState(false)
   const [gameIndex, setGameIndex] = useState(0)
-  const [hiScore, setHiScore] = useState(1247)
+  const [hi, setHi] = useState<HiScore>(readStoredHi)
+  const recordScore = (s: number) => {
+    if (s <= hi.score) return
+    const next: HiScore = { score: s, date: todayISO() }
+    setHi(next)
+    try {
+      localStorage.setItem(HI_KEY, JSON.stringify(next))
+    } catch {
+      /* private mode / quota — in-memory best still updates */
+    }
+  }
 
   const loadedPublic = publicProjects.find(p => p.id === selectedId) ?? null
   const loadedWorkshop = workshopProjects.find(p => p.id === selectedId) ?? null
@@ -103,7 +152,12 @@ export default function Arcade() {
             1UP &nbsp; <span style={{ color: ARC.ink }}>JYNAXX</span>
           </span>
           <span style={{ color: ARC.neon2 }}>
-            HI-SCORE &nbsp; <span style={{ color: ARC.ink, opacity: blink ? 1 : 0.4 }}>{fmt(hiScore)}</span>
+            HI-SCORE &nbsp; <span style={{ color: ARC.ink, opacity: blink ? 1 : 0.4 }}>{fmt(hi.score)}</span>
+            {hi.date && (
+              <span data-arcade-hiscore-date style={{ color: ARC.dim, marginLeft: 6 }}>
+                · {fmtHiDate(hi.date)}
+              </span>
+            )}
           </span>
           <span style={{ color: ARC.neon1 }}>
             LEVEL 04 &nbsp; <span style={{ color: ARC.ink }}>WORKSHOP</span>
@@ -273,10 +327,10 @@ export default function Arcade() {
       {coinOpen && (
         <CoinGameOverlay
           index={gameIndex}
-          hiScore={hiScore}
+          hiScore={hi.score}
           reduced={reduced}
           onAdvance={() => setGameIndex(i => (i + 1) % ARCADE_GAMES.length)}
-          onScore={s => setHiScore(h => Math.max(h, s))}
+          onScore={recordScore}
           onClose={() => setCoinOpen(false)}
         />
       )}

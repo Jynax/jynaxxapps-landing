@@ -95,6 +95,62 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await expect(page.locator('[data-coingame-title]')).toHaveText('COIN CATCH');
   });
 
+  test('HUD hi-score shows a persistent personal best + achieved-on date', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'jx_arcade_hiscore',
+        JSON.stringify({ score: 9001, date: '2026-05-17' }),
+      );
+    });
+    await page.goto('/#arcade');
+    const hud = page.locator('[data-direction="arcade"]');
+    await expect(hud).toContainText('9,001');
+    await expect(page.locator('[data-arcade-hiscore-date]')).toHaveText('· 26.05.17');
+  });
+
+  test('HUD hi-score shows no date before the seed is beaten', async ({ page }) => {
+    await page.goto('/#arcade');
+    await expect(page.locator('[data-direction="arcade"]')).toContainText('1,247');
+    await expect(page.locator('[data-arcade-hiscore-date]')).toHaveCount(0);
+  });
+
+  test('plays counter: shows the global total, POSTs once per browser', async ({ page }) => {
+    const methods: string[] = [];
+    await page.route('**/api/arcade-plays', route => {
+      const m = route.request().method();
+      methods.push(m);
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ count: m === 'POST' ? 42 : 41 }),
+      });
+    });
+
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await expect(page.locator('[data-coingame-plays]')).toContainText('41');
+
+    // First play POSTs (→ 42) and gates further POSTs via localStorage.
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-arcade-coingame]')).toHaveAttribute('data-coingame-state', 'playing');
+    await page.keyboard.press('Escape');
+
+    // Reopen + play again — must NOT POST a second time.
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await page.keyboard.press('Escape');
+
+    expect(methods.filter(m => m === 'POST')).toHaveLength(1);
+  });
+
+  test('plays counter hides gracefully when the endpoint is unavailable', async ({ page }) => {
+    // No route mock — vite dev serves SPA HTML for /api/*, so count stays unknown.
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await expect(page.locator('[data-arcade-coingame]')).toBeVisible();
+    await expect(page.locator('[data-coingame-plays]')).toHaveCount(0);
+  });
+
   test('reduced motion: playable, and adds zero SVG <animate> to the arcade', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();
