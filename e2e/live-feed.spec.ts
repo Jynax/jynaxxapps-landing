@@ -1,22 +1,31 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-// Task #26 — live activity feed. Single current entry (Decision 8.3 #3),
-// real GET/POST /api/live, per-direction widgets, reduced-motion freeze.
+// Task #26 → Task #30 — live activity feed. Capped rotating set (Decision
+// 8.3 #3 single-entry DELIBERATELY REVERSED), real GET/POST /api/live,
+// per-direction widgets, reduced-motion freeze.
 //
-// Pages Functions are NOT served by `vite dev` (same as /api/content, see
-// cms-schema.spec.ts), so the hook must gracefully fall back to the static
-// JX_NOW line. The real consumer contract is exercised here by mocking the
-// /api/live route with the locked single-entry JSON shape.
+// Pages Functions are NOT served by `vite dev` (same as /api/content), so the
+// hook gracefully falls back to the static JX_NOW line. The consumer contract
+// is exercised by mocking /api/live with the locked ENVELOPE shape. Server
+// cap/TTL/publicSafe rules are unit-tested in live-store.spec.ts.
 
 const PROBE = 'E2E-LIVE-PROBE rewiring the flux capacitor';
 
-// Locked wire shape: { activity, project, since, updated } — no entries[] wrapper.
+// Locked wire shape: { entries: LiveFeedEntry[] } — single-entry envelope
+// here so the pre-existing per-direction assertions stay valid.
 const LIVE_JSON = JSON.stringify({
-  activity: PROBE,
-  project: 'remnants',
-  since: '3m',
-  updated: '2026-05-16T18:42:00Z',
+  entries: [
+    {
+      id: 'probe-1',
+      activity: PROBE,
+      project: 'remnants',
+      since: '3m',
+      updated: '2026-05-16T18:42:00Z',
+      publicSafe: true,
+      source: 'wcc',
+    },
+  ],
 });
 
 async function mockLive(page: Page) {
