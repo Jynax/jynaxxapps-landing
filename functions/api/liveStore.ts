@@ -9,11 +9,15 @@ export const TTL_MS = 24 * 60 * 60 * 1000;
 type Source = LiveFeedEntry['source'];
 const SOURCES: readonly Source[] = ['wcc', 'lcc'];
 
+type EntryType = NonNullable<LiveFeedEntry['type']>;
+const ENTRY_TYPES: readonly EntryType[] = ['work', 'eod'];
+
 export type ValidPayload = {
   activity: string;
   project: string | null;
   since: string;
   source: Source;
+  type: EntryType;
 };
 
 export type ValidateResult =
@@ -42,6 +46,15 @@ export function validatePayload(payload: unknown): ValidateResult {
     return { ok: false, error: 'source must be "wcc" or "lcc"' };
   }
 
+  let type: EntryType;
+  if (p.type === undefined) {
+    type = 'work';
+  } else if (typeof p.type === 'string' && (ENTRY_TYPES as readonly string[]).includes(p.type)) {
+    type = p.type as EntryType;
+  } else {
+    return { ok: false, error: 'type must be "work" or "eod"' };
+  }
+
   return {
     ok: true,
     value: {
@@ -49,6 +62,7 @@ export function validatePayload(payload: unknown): ValidateResult {
       project: typeof p.project === 'string' && p.project ? p.project : null,
       since: typeof p.since === 'string' && p.since ? p.since : 'today',
       source,
+      type,
     },
   };
 }
@@ -65,6 +79,7 @@ export function buildEntry(p: ValidPayload, nowMs: number): LiveFeedEntry {
     updated: new Date(nowMs).toISOString(),
     publicSafe: true,
     source: p.source,
+    type: p.type,
   };
 }
 

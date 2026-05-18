@@ -83,7 +83,7 @@ export function useLiveFeed(): LiveFeed {
         const env = (await res.json()) as Partial<LiveFeedEnvelope>
         const list = Array.isArray(env?.entries) ? env.entries : []
         const valid = list.filter(
-          e => e && typeof e.activity === 'string' && e.activity,
+          e => e && typeof e.activity === 'string' && e.activity && e.type !== 'eod',
         )
         if (valid.length > 0) {
           setEntries(valid)
