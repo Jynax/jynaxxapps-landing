@@ -21,8 +21,9 @@
 //   node scripts/post-live.mjs "wiring up a new landing-page widget"
 //   node scripts/post-live.mjs "tidying a side project" --project remnants --since 1h
 //   node scripts/post-live.mjs "lcc-contributed line" --source lcc
-//   node scripts/post-live.mjs --delete                 # clear ALL entries
-//   node scripts/post-live.mjs --delete --id <entryId>  # clear one entry
+//   node scripts/post-live.mjs "done for the night" --eod   # nightly sign-off (excluded from daytime rotation)
+//   node scripts/post-live.mjs --delete                     # clear ALL entries
+//   node scripts/post-live.mjs --delete --id <entryId>      # clear one entry
 
 const API = process.env.LIVE_FEED_URL || 'https://jynaxxapps.com/api/live'
 
@@ -43,6 +44,8 @@ for (let i = 0; i < argv.length; i++) {
   const a = argv[i]
   if (a === '--delete') {
     opts.delete = true
+  } else if (a === '--eod') {
+    opts.eod = true
   } else if (a.startsWith('--')) {
     opts[a.slice(2)] = argv[++i] ?? ''
   } else {
@@ -73,6 +76,7 @@ if (!activity) {
 }
 
 const source = opts.source === 'lcc' ? 'lcc' : 'wcc'
+const type = opts.eod ? 'eod' : 'work'
 
 const body = {
   activity,
@@ -82,6 +86,7 @@ const body = {
   // (WCC) or LCC-tagged-then-approved. The server re-asserts it (spec §2).
   publicSafe: true,
   source,
+  type,
 }
 
 const res = await fetch(API, {
@@ -97,6 +102,6 @@ if (!res.ok) {
 
 const out = await res.json().catch(() => ({}))
 console.log(
-  `POST /api/live → ${res.status} · "${activity}" [${source}]` +
+  `POST /api/live → ${res.status} · "${activity}" [${source}][${type}]` +
     (out && out.count ? ` · ${out.count}/${out.cap} in set` : ''),
 )

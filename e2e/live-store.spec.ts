@@ -105,11 +105,44 @@ test.describe('liveStore — validatePayload', () => {
 test.describe('liveStore — buildEntry', () => {
   test('stamps id + updated, forces publicSafe true', () => {
     const built = buildEntry(
-      { activity: 'a', project: null, since: 'today', source: 'wcc' },
+      { activity: 'a', project: null, since: 'today', source: 'wcc', type: 'work' },
       NOW,
     );
     expect(built.id).toMatch(/[0-9a-f-]{36}/);
     expect(built.updated).toBe(new Date(NOW).toISOString());
     expect(built.publicSafe).toBe(true);
+  });
+
+  test('passes type through (work and eod)', () => {
+    const work = buildEntry({ activity: 'a', project: null, since: 'today', source: 'wcc', type: 'work' }, NOW);
+    expect(work.type).toBe('work');
+    const eod = buildEntry({ activity: 'done for the night', project: null, since: 'tonight', source: 'wcc', type: 'eod' }, NOW);
+    expect(eod.type).toBe('eod');
+  });
+});
+
+test.describe('liveStore — type field', () => {
+  test('validatePayload defaults type to "work" when omitted', () => {
+    const r = validatePayload({ activity: 'wiring a widget' });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.type).toBe('work');
+  });
+
+  test('validatePayload accepts type "eod"', () => {
+    const r = validatePayload({ activity: 'done for the night', type: 'eod' });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.type).toBe('eod');
+  });
+
+  test('validatePayload accepts type "work"', () => {
+    const r = validatePayload({ activity: 'shipping something', type: 'work' });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.type).toBe('work');
+  });
+
+  test('validatePayload rejects unknown type', () => {
+    const r = validatePayload({ activity: 'x', type: 'night' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/type/i);
   });
 });

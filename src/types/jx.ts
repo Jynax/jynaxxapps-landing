@@ -48,6 +48,9 @@ export type LiveFeedEntry = {
   updated: string; // server-stamped ISO-8601 on insert
   publicSafe: true;
   source: 'wcc' | 'lcc';
+  // 'eod' = nightly sign-off; excluded from the daytime rotation widget.
+  // Omitted / undefined is treated as 'work' for backwards compatibility.
+  type?: 'work' | 'eod';
 };
 
 export type LiveFeedEnvelope = {
