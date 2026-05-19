@@ -301,4 +301,32 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
 
     await context.close();
   });
+
+  test('visibilitychange: coins do not advance while the tab is hidden', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-coingame-field]')).toBeVisible();
+
+    // Wait for at least one coin to appear.
+    await page.waitForSelector('[data-coingame-coin]');
+    const coin = page.locator('[data-coingame-coin]').first();
+
+    // Record Y while visible.
+    const yBefore = (await coin.boundingBox())!.y;
+    await page.waitForTimeout(120);
+    const yVisible = (await coin.boundingBox())!.y;
+    const visibleDelta = yVisible - yBefore;
+    expect(visibleDelta).toBeGreaterThan(0); // coins are falling while visible
+
+    // Hide the tab and wait the same interval.
+    await page.evaluate(() => Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    const yAtHide = (await coin.boundingBox())!.y;
+    await page.waitForTimeout(200);
+    const yWhileHidden = (await coin.boundingBox())!.y;
+
+    // Allow tiny float drift but coins must not advance significantly.
+    expect(Math.abs(yWhileHidden - yAtHide)).toBeLessThan(visibleDelta * 0.5);
+  });
 });

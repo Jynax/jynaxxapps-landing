@@ -239,8 +239,24 @@ export function CoinCatch({
       mirror()
       raf = requestAnimationFrame(loop)
     }
+
+    // Pause the loop when the tab is hidden; reset lastTs on resume so hidden
+    // time doesn't count as a huge dt spike.
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        cancelAnimationFrame(raf)
+      } else {
+        lastTs = null
+        raf = requestAnimationFrame(loop)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [reduced, playerTopY])
 
   const livesLeft = MAX_MISSES - misses
