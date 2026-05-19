@@ -13,7 +13,7 @@ import { Prompt } from '../parts/Prompt'
  * Block 5 — `cat ./about.txt` collapsible story block.
  *
  * Per design-spec-terminal.md "Collapsible about block":
- *   - Default: clamped to max-height ~110px, first 2 sentences visible.
+ *   - Default: collapsed (max-height 0, no bio visible).
  *   - Click the prompt (dotted underline) OR the `[+ expand]`/`[− collapse]`
  *     tag to toggle. Animates max-height 0 → 1200px over .35s ease.
  *
@@ -76,7 +76,7 @@ export function AboutBlock() {
         style={{
           marginTop: 14,
           overflow: 'hidden',
-          maxHeight: open ? 1200 : 110,
+          maxHeight: open ? 1200 : 0,
           transition: 'max-height .35s ease',
           fontFamily: 'var(--font-mono)',
           fontSize: 14,

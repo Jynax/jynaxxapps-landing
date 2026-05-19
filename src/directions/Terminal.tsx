@@ -123,7 +123,7 @@ export default function Terminal() {
       />
 
       {/* ── Content (above overlays) ── */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'relative', zIndex: 3 }}>
         {/* 1 — CRT chrome header */}
         <CrtHeader />
 
