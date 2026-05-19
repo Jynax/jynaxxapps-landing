@@ -75,12 +75,59 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await expect(page.locator('[data-direction="arcade"]')).toBeVisible();
   });
 
-  test('game over after the timer, then INSERT COIN rotates to the next game', async ({ browser }) => {
-    // Use reduced-motion context so the game runs the setInterval path — the
-    // rAF-based full-motion loop is not reliably advanced by fake clock because
-    // each frame schedules the next rAF recursively. The reduced-motion variant
-    // uses setInterval(tick, 650ms) which runFor drives deterministically.
-    // (Same pattern used by the reduced-motion test below.)
+  test('pointer-follow: mouse position steers the player continuously', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    const field = page.locator('[data-coingame-field]');
+    await expect(field).toBeVisible();
+    const fb = await field.boundingBox();
+
+    // Move mouse to far left then far right; player should track.
+    await page.mouse.move(fb!.x + 10, fb!.y + fb!.height / 2);
+    await page.waitForTimeout(80);
+    const leftX = await page.locator('[data-coingame-player]').evaluate(
+      el => parseFloat((el as HTMLElement).style.transform.replace(/[^0-9.-]/g, '') || '0'),
+    );
+
+    await page.mouse.move(fb!.x + fb!.width - 10, fb!.y + fb!.height / 2);
+    await page.waitForTimeout(80);
+    const rightX = await page.locator('[data-coingame-player]').evaluate(
+      el => parseFloat((el as HTMLElement).style.transform.replace(/[^0-9.-]/g, '') || '0'),
+    );
+
+    expect(rightX).toBeGreaterThan(leftX + 50);
+  });
+
+  test('held-key glide: holding ArrowRight moves the player more than 60px in 450ms', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    const player = page.locator('[data-coingame-player]');
+    await expect(player).toBeVisible();
+
+    // Start from the left edge so we have room.
+    const field = page.locator('[data-coingame-field]');
+    const fb = await field.boundingBox();
+    await page.mouse.move(fb!.x + 10, fb!.y + fb!.height / 2);
+    await page.waitForTimeout(80);
+
+    const x0 = await player.evaluate(
+      el => parseFloat((el as HTMLElement).style.transform.replace(/[^0-9.-]/g, '') || '0'),
+    );
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(450);
+    await page.keyboard.up('ArrowRight');
+    const x1 = await player.evaluate(
+      el => parseFloat((el as HTMLElement).style.transform.replace(/[^0-9.-]/g, '') || '0'),
+    );
+    expect(x1 - x0).toBeGreaterThan(60);
+  });
+
+  test('missing 3 coins ends the run, then INSERT COIN rotates to the next game', async ({ browser }) => {
+    // Use reduced-motion context so the game runs the setInterval path which
+    // page.clock drives deterministically. The player stays stationary so
+    // most coins fall past (random spawn positions; player covers ~14% of field).
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();
     await page.clock.install();
@@ -90,8 +137,8 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     const overlay = page.locator('[data-arcade-coingame]');
     await expect(overlay).toHaveAttribute('data-coingame-state', 'playing');
 
-    // Run out the 15s clock deterministically via the setInterval path.
-    await page.clock.runFor(16000);
+    // Advance clock until 3 coins fall past the stationary player → game over.
+    await page.clock.runFor(20_000);
     await expect(overlay).toHaveAttribute('data-coingame-state', 'over');
     await expect(page.locator('[data-coingame-finalscore]')).toBeVisible();
 
@@ -159,6 +206,77 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await expect(page.locator('[data-coingame-plays]')).toHaveCount(0);
   });
 
+  test('no timer: the TIME HUD readout is gone, a LIVES/MISS readout is present', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-arcade-coingame]')).toHaveAttribute('data-coingame-state', 'playing');
+    await expect(page.locator('[data-coingame-timer]')).toHaveCount(0);
+    await expect(page.locator('[data-coingame-lives]')).toHaveCount(1);
+  });
+
+  test('missing 3 coins ends the run (GAME OVER), score still bubbles up', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    // Do NOT move the collector; let coins fall past until 3 misses.
+    await expect(page.locator('[data-arcade-coingame][data-coingame-state="over"]'))
+      .toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-coingame-finalscore]')).toBeVisible();
+  });
+
+  test('difficulty ramps: coins fall faster later in a run than at the start', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-arcade-coingame]')).toHaveAttribute('data-coingame-state', 'playing');
+
+    // Sample early fall speed.
+    await page.waitForSelector('[data-coingame-coin]');
+    const earlyY1 = (await page.locator('[data-coingame-coin]').first().boundingBox())!.y;
+    await page.waitForTimeout(200);
+    const earlyY2 = (await page.locator('[data-coingame-coin]').first().boundingBox())!.y;
+    const earlySpeed = (earlyY2 - earlyY1) / 200;
+
+    // Track coins with pointer-follow to survive and let the ramp advance (~8s).
+    const field = page.locator('[data-coingame-field]');
+    const fb = await field.boundingBox();
+    for (let i = 0; i < 80; i++) {
+      const coinBox = await page.locator('[data-coingame-coin]').first().boundingBox().catch(() => null);
+      const targetX = coinBox ? fb!.x + coinBox.x + coinBox.width / 2 : fb!.x + fb!.width / 2;
+      await page.mouse.move(targetX, fb!.y + fb!.height / 2);
+      await page.waitForTimeout(100);
+      const state = await page.locator('[data-arcade-coingame]').getAttribute('data-coingame-state');
+      if (state !== 'playing') break;
+    }
+
+    const state = await page.locator('[data-arcade-coingame]').getAttribute('data-coingame-state');
+    if (state !== 'playing') return;
+
+    // Sample late fall speed.
+    await page.waitForSelector('[data-coingame-coin]');
+    const lateY1 = (await page.locator('[data-coingame-coin]').first().boundingBox())!.y;
+    await page.waitForTimeout(200);
+    const lateY2 = (await page.locator('[data-coingame-coin]').first().boundingBox())!.y;
+    const lateSpeed = (lateY2 - lateY1) / 200;
+
+    expect(lateSpeed).toBeGreaterThan(earlySpeed * 1.3);
+  });
+
+  test('collector is the Pot of Gold and is smaller than the old chibi (78px)', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-arcade-coingame]')).toHaveAttribute('data-coingame-state', 'playing');
+    const collector = page.locator('[data-coingame-player]');
+    await expect(collector).toBeVisible();
+    const box = await collector.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeLessThan(78);
+    expect(box!.width).toBeGreaterThanOrEqual(40);
+    await expect(collector.locator('[data-pot-of-gold]')).toHaveCount(1);
+  });
+
   test('reduced motion: playable, and adds zero SVG <animate> to the arcade', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();
@@ -182,5 +300,33 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await expect(page.locator('[data-arcade-coingame]')).toHaveAttribute('data-coingame-state', 'over');
 
     await context.close();
+  });
+
+  test('visibilitychange: coins do not advance while the tab is hidden', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-coingame-field]')).toBeVisible();
+
+    // Wait for at least one coin to appear.
+    await page.waitForSelector('[data-coingame-coin]');
+    const coin = page.locator('[data-coingame-coin]').first();
+
+    // Record Y while visible.
+    const yBefore = (await coin.boundingBox())!.y;
+    await page.waitForTimeout(120);
+    const yVisible = (await coin.boundingBox())!.y;
+    const visibleDelta = yVisible - yBefore;
+    expect(visibleDelta).toBeGreaterThan(0); // coins are falling while visible
+
+    // Hide the tab and wait the same interval.
+    await page.evaluate(() => Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    const yAtHide = (await coin.boundingBox())!.y;
+    await page.waitForTimeout(200);
+    const yWhileHidden = (await coin.boundingBox())!.y;
+
+    // Allow tiny float drift but coins must not advance significantly.
+    expect(Math.abs(yWhileHidden - yAtHide)).toBeLessThan(visibleDelta * 0.5);
   });
 });

@@ -1,34 +1,37 @@
-// Coin Catch — game 1 of the Arcade "insert coin" easter-egg rotation
-// (Task #29). Timed 15s run: move the chibi player left/right, catch falling
-// coins, misses don't score. Final score bubbles up via onGameOver and feeds
-// the HUD HI-SCORE.
+// Coin Catch — Arcade easter-egg game. Endless survival: move the pot
+// left/right to catch falling coins; 3 misses ends the run. Fall speed and
+// spawn frequency ramp continuously as elapsed time grows.
 //
-// Motion contract (load-bearing — matches the Arcade reduced-motion e2e: no
-// SVG <animate> anywhere under [data-direction="arcade"]): this game animates
-// with div transforms driven by React state, never SMIL. Under reduced motion
-// it switches to a discrete tick-step variant (coins drop one step per beat),
-// so it stays fully playable without continuous motion.
+// Motion contract (load-bearing): no SVG <animate> anywhere under
+// [data-direction="arcade"]. Motion = div transforms driven by React state.
+// Under reduced motion: discrete tick-step variant (fully playable, no rAF).
 
 import { useEffect, useRef, useState } from 'react'
 import { ARC } from '../tokens'
-import { PlayerSprite } from '../PlayerSprite'
+import { PotOfGold, WIDTH as POT_W, HEIGHT as POT_H } from './PotOfGold'
 
 const FIELD_W = 440
 const FIELD_H = 320
-const PLAYER_W = 78
-const PLAYER_H = 86
 const COIN = 22
 const PLAYER_STEP = 34
-const DURATION_MS = 15_000
+const GLIDE_PX_PER_MS = 0.30 // held-key glide speed (px/ms)
+const MAX_MISSES = 3 // playtest-tunable miss budget
 
-// Smooth (non-reduced) tuning.
-const FALL_PX_PER_MS = 0.16
-const SPAWN_MS = 850
+// Smooth (non-reduced) ramp tuning — playtest-tunable
+const FALL_START     = 0.10   // px/ms at game start
+const FALL_CAP       = 0.50   // px/ms at full ramp
+const SPAWN_START_MS = 1200   // spawn interval at game start (ms)
+const SPAWN_MIN_MS   = 300    // spawn interval at full ramp (ms)
+const RAMP_WINDOW_MS = 25_000 // ms to interpolate from start to cap
 
-// Discrete (reduced-motion) tuning.
-const TICK_MS = 650
-const COIN_STEP = 42
-const SPAWN_EVERY_TICKS = 2
+// Discrete (reduced-motion) ramp tuning — playtest-tunable
+const TICK_MS            = 100  // base interval; small for smooth ramp
+const COIN_STEP_START    = 25   // px/tick at game start
+const COIN_STEP_CAP      = 65   // px/tick at full ramp
+const SPAWN_TICK_START_MS = 1200 // ms between spawns at game start
+const SPAWN_TICK_MIN_MS   = 300  // ms between spawns at full ramp
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t)
 
 interface Coin {
   id: number
@@ -45,60 +48,86 @@ export function CoinCatch({
   reduced: boolean
   onGameOver: (score: number) => void
 }) {
-  const [playerX, setPlayerX] = useState((FIELD_W - PLAYER_W) / 2)
+  const [playerX, setPlayerX] = useState((FIELD_W - POT_W) / 2)
   const [coins, setCoins] = useState<Coin[]>([])
   const [score, setScore] = useState(0)
-  const [secondsLeft, setSecondsLeft] = useState(Math.ceil(DURATION_MS / 1000))
+  const [misses, setMisses] = useState(0)
 
   // Authoritative mutable game state (refs — render state is a mirror).
   const playerXRef = useRef(playerX)
   const coinsRef = useRef<Coin[]>([])
   const scoreRef = useRef(0)
+  const missesRef = useRef(0)
   const elapsedRef = useRef(0)
   const spawnAccRef = useRef(0)
-  const tickRef = useRef(0)
   const nextIdRef = useRef(1)
   const finishedRef = useRef(false)
   const onGameOverRef = useRef(onGameOver)
+  const fieldRef = useRef<HTMLDivElement>(null)
+  const keysHeldRef = useRef(new Set<string>())
   useEffect(() => {
     onGameOverRef.current = onGameOver
   })
 
-  const playerTopY = FIELD_H - PLAYER_H
+  const playerTopY = FIELD_H - POT_H
 
-  // Single window-capture key handler for movement. Capture phase + the game
-  // being mounted only while playing means LiveShell's 1–4 switcher never sees
-  // these. Escape is deliberately left to bubble (the overlay shell closes on
-  // it). Arrow/Space defaults are prevented so the page behind never scrolls.
+  // Window-capture key handler. Capture phase ensures LiveShell's 1–4 switcher
+  // never sees Arrow/A/D while the game is mounted. Escape bubbles (overlay closes).
+  // keydown: immediate step + held-key tracking; keyup: clears held state.
   useEffect(() => {
     const move = (dir: -1 | 1) => {
       const next = Math.max(
         0,
-        Math.min(FIELD_W - PLAYER_W, playerXRef.current + dir * PLAYER_STEP),
+        Math.min(FIELD_W - POT_W, playerXRef.current + dir * PLAYER_STEP),
       )
       playerXRef.current = next
       setPlayerX(next)
     }
-    const onKey = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       const k = e.key
       if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
         e.preventDefault()
         e.stopPropagation()
+        keysHeldRef.current.add(k)
         move(-1)
       } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
         e.preventDefault()
         e.stopPropagation()
+        keysHeldRef.current.add(k)
         move(1)
       } else if (k === ' ' || k === 'ArrowDown' || k === 'ArrowUp') {
-        e.preventDefault() // swallow scroll keys while playing
+        e.preventDefault()
       }
     }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
+    const onKeyUp = (e: KeyboardEvent) => {
+      keysHeldRef.current.delete(e.key)
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    window.addEventListener('keyup', onKeyUp, true)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('keyup', onKeyUp, true)
+    }
   }, [])
 
-  // Game loop. Non-reduced: requestAnimationFrame with real dt. Reduced:
-  // a slow discrete interval (coins step down one row per beat).
+  // Pointer-follow (non-reduced only). Centers the pot on the cursor X within the field.
+  useEffect(() => {
+    if (reduced) return
+    const el = fieldRef.current
+    if (!el) return
+    const onPointerMove = (e: PointerEvent) => {
+      if (finishedRef.current) return
+      const rect = el.getBoundingClientRect()
+      const next = Math.max(0, Math.min(FIELD_W - POT_W, e.clientX - rect.left - POT_W / 2))
+      playerXRef.current = next
+      setPlayerX(next)
+    }
+    el.addEventListener('pointermove', onPointerMove)
+    return () => el.removeEventListener('pointermove', onPointerMove)
+  }, [reduced])
+
+  // Game loop. Non-reduced: rAF with real dt. Reduced: small base interval
+  // (TICK_MS) with spawn accumulator so both step size and spawn rate ramp.
   useEffect(() => {
     finishedRef.current = false
 
@@ -115,12 +144,15 @@ export function CoinCatch({
       const kept: Coin[] = []
       for (const c of coinsRef.current) {
         const reachedBand = c.y + COIN >= playerTopY
-        const overlap = c.x + COIN > px0 && c.x < px0 + PLAYER_W
+        const overlap = c.x + COIN > px0 && c.x < px0 + POT_W
         if (reachedBand && overlap) {
           scoreRef.current += 1
-          continue // caught — remove
+          continue // caught
         }
-        if (c.y > FIELD_H) continue // missed — remove, no score
+        if (c.y > FIELD_H) {
+          missesRef.current += 1 // missed
+          continue
+        }
         kept.push(c)
       }
       coinsRef.current = kept
@@ -129,9 +161,7 @@ export function CoinCatch({
     const mirror = () => {
       setCoins(coinsRef.current.map(c => ({ ...c })))
       setScore(scoreRef.current)
-      setSecondsLeft(
-        Math.max(0, Math.ceil((DURATION_MS - elapsedRef.current) / 1000)),
-      )
+      setMisses(missesRef.current)
     }
 
     const finish = () => {
@@ -144,14 +174,22 @@ export function CoinCatch({
     if (reduced) {
       const id = setInterval(() => {
         elapsedRef.current += TICK_MS
-        tickRef.current += 1
-        if (tickRef.current % SPAWN_EVERY_TICKS === 0) spawn()
+        const t = elapsedRef.current / RAMP_WINDOW_MS
+        const coinStep      = lerp(COIN_STEP_START, COIN_STEP_CAP, t)
+        const spawnInterval = lerp(SPAWN_TICK_START_MS, SPAWN_TICK_MIN_MS, t)
+
+        spawnAccRef.current += TICK_MS
+        if (spawnAccRef.current >= spawnInterval) {
+          spawnAccRef.current -= spawnInterval
+          spawn()
+        }
+
         coinsRef.current = coinsRef.current.map(c => ({
           ...c,
-          y: c.y + COIN_STEP,
+          y: c.y + coinStep,
         }))
         resolveCollisions()
-        if (elapsedRef.current >= DURATION_MS) {
+        if (missesRef.current >= MAX_MISSES) {
           clearInterval(id)
           finish()
           return
@@ -168,29 +206,64 @@ export function CoinCatch({
       const dt = ts - lastTs
       lastTs = ts
       elapsedRef.current += dt
+
+      const t = elapsedRef.current / RAMP_WINDOW_MS
+      const fallSpeed     = lerp(FALL_START, FALL_CAP, t)
+      const spawnInterval = lerp(SPAWN_START_MS, SPAWN_MIN_MS, t)
+
       spawnAccRef.current += dt
-      if (spawnAccRef.current >= SPAWN_MS) {
-        spawnAccRef.current -= SPAWN_MS
+      if (spawnAccRef.current >= spawnInterval) {
+        spawnAccRef.current -= spawnInterval
         spawn()
       }
+
+      // Held-key glide (continuous movement while key is held).
+      const leftHeld  = keysHeldRef.current.has('ArrowLeft')  || keysHeldRef.current.has('a') || keysHeldRef.current.has('A')
+      const rightHeld = keysHeldRef.current.has('ArrowRight') || keysHeldRef.current.has('d') || keysHeldRef.current.has('D')
+      if (leftHeld || rightHeld) {
+        const dir = (rightHeld ? 1 : 0) - (leftHeld ? 1 : 0)
+        const next = Math.max(0, Math.min(FIELD_W - POT_W, playerXRef.current + dir * GLIDE_PX_PER_MS * dt))
+        playerXRef.current = next
+        setPlayerX(next)
+      }
+
       coinsRef.current = coinsRef.current.map(c => ({
         ...c,
-        y: c.y + FALL_PX_PER_MS * dt,
+        y: c.y + fallSpeed * dt,
       }))
       resolveCollisions()
-      if (elapsedRef.current >= DURATION_MS) {
+      if (missesRef.current >= MAX_MISSES) {
         finish()
         return
       }
       mirror()
       raf = requestAnimationFrame(loop)
     }
+
+    // Pause the loop when the tab is hidden; reset lastTs on resume so hidden
+    // time doesn't count as a huge dt spike.
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        cancelAnimationFrame(raf)
+      } else {
+        lastTs = null
+        raf = requestAnimationFrame(loop)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [reduced, playerTopY])
+
+  const livesLeft = MAX_MISSES - misses
 
   return (
     <div
+      ref={fieldRef}
       data-coingame-field
       style={{
         position: 'relative',
@@ -205,7 +278,7 @@ export function CoinCatch({
         boxShadow: `inset 0 0 40px ${ARC.neon2}22`,
       }}
     >
-      {/* HUD: score + clock */}
+      {/* HUD: score + lives */}
       <div
         style={{
           position: 'absolute',
@@ -224,8 +297,8 @@ export function CoinCatch({
         <span data-coingame-score style={{ color: ARC.neon3 }}>
           SCORE&nbsp;<span style={{ color: ARC.ink }}>{score}</span>
         </span>
-        <span data-coingame-timer style={{ color: ARC.neon2 }}>
-          TIME&nbsp;<span style={{ color: ARC.ink }}>{secondsLeft}</span>
+        <span data-coingame-lives style={{ color: ARC.neon1 }}>
+          {'●'.repeat(Math.max(0, livesLeft))}{'○'.repeat(Math.min(misses, MAX_MISSES))}
         </span>
       </div>
 
@@ -253,11 +326,11 @@ export function CoinCatch({
           left: 0,
           top: playerTopY,
           transform: `translateX(${playerX}px)`,
-          width: PLAYER_W,
-          height: PLAYER_H,
+          width: POT_W,
+          height: POT_H,
         }}
       >
-        <PlayerSprite />
+        <PotOfGold />
       </div>
     </div>
   )
