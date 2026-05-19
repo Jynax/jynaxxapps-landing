@@ -108,6 +108,10 @@ export default function Arcade() {
 
   const loadedPublic = publicProjects.find(p => p.id === selectedId) ?? null
   const loadedWorkshop = workshopProjects.find(p => p.id === selectedId) ?? null
+  // Accent colour of the currently-selected public cartridge tile (Task #38).
+  // Passed to CartDossier so its border/glow matches the loaded cart exactly.
+  const selectedPublicIdx = publicProjects.findIndex(p => p.id === selectedId)
+  const cartAccent = selectedPublicIdx >= 0 ? accentAt(CART_ACCENTS, selectedPublicIdx) : undefined
 
   return (
     <section
@@ -237,7 +241,7 @@ export default function Arcade() {
 
         {/* SELECT YOUR CARTRIDGE — screen above, carts below */}
         <div style={{ marginTop: 40 }}>
-          <CartDossier project={loadedPublic} onClose={() => setSelectedId(null)} />
+          <CartDossier project={loadedPublic} accent={cartAccent} onClose={() => setSelectedId(null)} />
 
           <div
             style={{
