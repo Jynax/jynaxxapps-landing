@@ -59,6 +59,16 @@ export type LiveFeedEnvelope = {
 
 export type ContactKind = 'email' | 'github' | 'bluesky' | 'rss';
 
+// Wire shape for GET /api/stats + the useStats hook (Task #36 WS2).
+// Stored at KV key `stats-now`; populated by scripts/post-stats.mjs.
+// `COFFEE ∞` is a static literal in the widget — NOT in this envelope.
+export interface StatsEnvelope {
+  generatedAt: string; // server-stamped ISO-8601
+  since: string;       // e.g. 'FEB 2026'
+  projects: number;    // int ≥ 0
+  prsMerged: number;   // int ≥ 0
+}
+
 export type ContactEntry = {
   kind: ContactKind;
   label: string;
