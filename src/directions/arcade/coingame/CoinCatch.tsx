@@ -11,12 +11,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ARC } from '../tokens'
-import { PlayerSprite } from '../PlayerSprite'
+import { PotOfGold, WIDTH as POT_W, HEIGHT as POT_H } from './PotOfGold'
 
 const FIELD_W = 440
 const FIELD_H = 320
-const PLAYER_W = 78
-const PLAYER_H = 86
 const COIN = 22
 const PLAYER_STEP = 34
 const DURATION_MS = 15_000
@@ -45,7 +43,7 @@ export function CoinCatch({
   reduced: boolean
   onGameOver: (score: number) => void
 }) {
-  const [playerX, setPlayerX] = useState((FIELD_W - PLAYER_W) / 2)
+  const [playerX, setPlayerX] = useState((FIELD_W - POT_W) / 2)
   const [coins, setCoins] = useState<Coin[]>([])
   const [score, setScore] = useState(0)
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(DURATION_MS / 1000))
@@ -64,7 +62,7 @@ export function CoinCatch({
     onGameOverRef.current = onGameOver
   })
 
-  const playerTopY = FIELD_H - PLAYER_H
+  const playerTopY = FIELD_H - POT_H
 
   // Single window-capture key handler for movement. Capture phase + the game
   // being mounted only while playing means LiveShell's 1–4 switcher never sees
@@ -74,7 +72,7 @@ export function CoinCatch({
     const move = (dir: -1 | 1) => {
       const next = Math.max(
         0,
-        Math.min(FIELD_W - PLAYER_W, playerXRef.current + dir * PLAYER_STEP),
+        Math.min(FIELD_W - POT_W, playerXRef.current + dir * PLAYER_STEP),
       )
       playerXRef.current = next
       setPlayerX(next)
@@ -115,7 +113,7 @@ export function CoinCatch({
       const kept: Coin[] = []
       for (const c of coinsRef.current) {
         const reachedBand = c.y + COIN >= playerTopY
-        const overlap = c.x + COIN > px0 && c.x < px0 + PLAYER_W
+        const overlap = c.x + COIN > px0 && c.x < px0 + POT_W
         if (reachedBand && overlap) {
           scoreRef.current += 1
           continue // caught — remove
@@ -253,11 +251,11 @@ export function CoinCatch({
           left: 0,
           top: playerTopY,
           transform: `translateX(${playerX}px)`,
-          width: PLAYER_W,
-          height: PLAYER_H,
+          width: POT_W,
+          height: POT_H,
         }}
       >
-        <PlayerSprite />
+        <PotOfGold />
       </div>
     </div>
   )

@@ -159,6 +159,20 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await expect(page.locator('[data-coingame-plays]')).toHaveCount(0);
   });
 
+  test('collector is the Pot of Gold and is smaller than the old chibi (78px)', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-arcade-coingame]')).toHaveAttribute('data-coingame-state', 'playing');
+    const collector = page.locator('[data-coingame-player]');
+    await expect(collector).toBeVisible();
+    const box = await collector.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeLessThan(78);
+    expect(box!.width).toBeGreaterThanOrEqual(40);
+    await expect(collector.locator('[data-pot-of-gold]')).toHaveCount(1);
+  });
+
   test('reduced motion: playable, and adds zero SVG <animate> to the arcade', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();
