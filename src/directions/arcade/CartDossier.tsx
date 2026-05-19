@@ -16,11 +16,18 @@ function DossierMeta({ k, v, color }: { k: string; v: string; color?: string }) 
 
 // Always-visible cabinet "screen" (reference `CartDossier`, 2026-05-16
 // revision): idle placeholder when nothing is loaded, full dossier otherwise.
+//
+// `accent` — the selected cartridge's tile accent (from CART_ACCENTS rotation
+// in Arcade.tsx). Overrides the status-derived colour so the dossier border
+// matches the loaded cartridge exactly (Task #38). Falls back to
+// statusToNeon() when absent (e.g. idle state).
 export function CartDossier({
   project,
+  accent,
   onClose,
 }: {
   project: Project | null | undefined
+  accent?: string
   onClose: () => void
 }) {
   if (!project) {
@@ -60,7 +67,7 @@ export function CartDossier({
     )
   }
 
-  const c = statusToNeon(project.status)
+  const c = accent ?? statusToNeon(project.status)
   const statusLabel = (JX_STATUS[project.status] ?? JX_STATUS.sketch).label
 
   return (
