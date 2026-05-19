@@ -31,15 +31,15 @@ test('GET /api/stats falls through to the SPA under vite dev (no 404, no crash)'
   expect(await res.text()).toContain('<!doctype html')
 })
 
-test('POST /api/stats falls through to the SPA under vite dev (no crash)', async ({
+test('POST /api/stats without token is not served by vite dev (no Pages Function)', async ({
   request,
 }) => {
+  // vite dev does not run Pages Functions — POST to unknown paths returns 404,
+  // not a token error. The token-gate logic is covered by statsStore unit tests.
   const res = await request.post('/api/stats', {
     data: { since: 'FEB 2026', projects: 12, prsMerged: 400 },
   })
-  // vite dev returns the SPA for any unhandled path — not a Pages Function error
-  expect(res.status()).toBe(200)
-  expect(res.headers()['content-type'] ?? '').toContain('text/html')
+  expect([404, 405]).toContain(res.status())
 })
 
 // ── Task 4: scoreboard widget + graceful fallback ───────────────────────────
