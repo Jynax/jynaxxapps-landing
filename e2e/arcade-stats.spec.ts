@@ -68,11 +68,14 @@ test('scoreboard shows the four real rows + UPDATED tag, with graceful fallback'
   await page.goto('/#arcade')
   await page.click('[data-arcade-livestrip-toggle]')
   const sb = page.locator('[data-arcade-livestrip-panel]')
-  await expect(sb.getByText('SINCE')).toBeVisible()
-  await expect(sb.getByText('PROJECTS')).toBeVisible()
-  await expect(sb.getByText('PRS MERGED')).toBeVisible()
-  await expect(sb.getByText('COFFEE')).toBeVisible()
-  await expect(sb.getByText(/UPDATED/)).toBeVisible()
+  // Row labels are in the scoreboard column specifically (live feed fallback
+  // text also contains "coffee" lowercase — scope to [data-arcade-scoreboard]).
+  const sc = sb.locator('[data-arcade-scoreboard]')
+  await expect(sc.getByText('SINCE')).toBeVisible()
+  await expect(sc.getByText('PROJECTS')).toBeVisible()
+  await expect(sc.getByText('PRS MERGED')).toBeVisible()
+  await expect(sc.getByText('COFFEE')).toBeVisible()
+  await expect(sc.getByText(/UPDATED/)).toBeVisible()
   await expect(sb.getByText(/LINES|COMMITS|SESSIONS/)).toHaveCount(0)
 })
 
@@ -81,8 +84,9 @@ test('scoreboard shows live values when /api/stats responds', async ({ page }) =
   await page.goto('/#arcade')
   await page.click('[data-arcade-livestrip-toggle]')
   const sb = page.locator('[data-arcade-livestrip-panel]')
-  await expect(sb.getByText('SINCE')).toBeVisible()
-  await expect(sb.getByText('FEB 2026')).toBeVisible()
-  await expect(sb.getByText(/400/)).toBeVisible() // prsMerged
-  await expect(sb.getByText(/UPDATED/)).toBeVisible()
+  const sc = sb.locator('[data-arcade-scoreboard]')
+  await expect(sc.getByText('SINCE')).toBeVisible()
+  await expect(sc.getByText('FEB 2026')).toBeVisible()
+  await expect(sc.getByText(/400/)).toBeVisible() // prsMerged
+  await expect(sc.getByText(/UPDATED/)).toBeVisible()
 })
