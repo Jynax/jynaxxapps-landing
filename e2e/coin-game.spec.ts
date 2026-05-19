@@ -75,6 +75,55 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await expect(page.locator('[data-direction="arcade"]')).toBeVisible();
   });
 
+  test('pointer-follow: mouse position steers the player continuously', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    const field = page.locator('[data-coingame-field]');
+    await expect(field).toBeVisible();
+    const fb = await field.boundingBox();
+
+    // Move mouse to far left then far right; player should track.
+    await page.mouse.move(fb!.x + 10, fb!.y + fb!.height / 2);
+    await page.waitForTimeout(80);
+    const leftX = await page.locator('[data-coingame-player]').evaluate(
+      el => parseFloat((el as HTMLElement).style.transform.replace(/[^0-9.-]/g, '') || '0'),
+    );
+
+    await page.mouse.move(fb!.x + fb!.width - 10, fb!.y + fb!.height / 2);
+    await page.waitForTimeout(80);
+    const rightX = await page.locator('[data-coingame-player]').evaluate(
+      el => parseFloat((el as HTMLElement).style.transform.replace(/[^0-9.-]/g, '') || '0'),
+    );
+
+    expect(rightX).toBeGreaterThan(leftX + 50);
+  });
+
+  test('held-key glide: holding ArrowRight moves the player more than 60px in 450ms', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    const player = page.locator('[data-coingame-player]');
+    await expect(player).toBeVisible();
+
+    // Start from the left edge so we have room.
+    const field = page.locator('[data-coingame-field]');
+    const fb = await field.boundingBox();
+    await page.mouse.move(fb!.x + 10, fb!.y + fb!.height / 2);
+    await page.waitForTimeout(80);
+
+    const x0 = await player.evaluate(
+      el => parseFloat((el as HTMLElement).style.transform.replace(/[^0-9.-]/g, '') || '0'),
+    );
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(450);
+    await page.keyboard.up('ArrowRight');
+    const x1 = await player.evaluate(
+      el => parseFloat((el as HTMLElement).style.transform.replace(/[^0-9.-]/g, '') || '0'),
+    );
+    expect(x1 - x0).toBeGreaterThan(60);
+  });
+
   test('missing 3 coins ends the run, then INSERT COIN rotates to the next game', async ({ browser }) => {
     // Use reduced-motion context so the game runs the setInterval path which
     // page.clock drives deterministically. The player stays stationary so

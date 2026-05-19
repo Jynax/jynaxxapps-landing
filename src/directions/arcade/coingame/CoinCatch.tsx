@@ -14,6 +14,7 @@ const FIELD_W = 440
 const FIELD_H = 320
 const COIN = 22
 const PLAYER_STEP = 34
+const GLIDE_PX_PER_MS = 0.30 // held-key glide speed (px/ms)
 const MAX_MISSES = 3 // playtest-tunable miss budget
 
 // Smooth (non-reduced) ramp tuning — playtest-tunable
@@ -62,6 +63,8 @@ export function CoinCatch({
   const nextIdRef = useRef(1)
   const finishedRef = useRef(false)
   const onGameOverRef = useRef(onGameOver)
+  const fieldRef = useRef<HTMLDivElement>(null)
+  const keysHeldRef = useRef(new Set<string>())
   useEffect(() => {
     onGameOverRef.current = onGameOver
   })
@@ -70,6 +73,7 @@ export function CoinCatch({
 
   // Window-capture key handler. Capture phase ensures LiveShell's 1–4 switcher
   // never sees Arrow/A/D while the game is mounted. Escape bubbles (overlay closes).
+  // keydown: immediate step + held-key tracking; keyup: clears held state.
   useEffect(() => {
     const move = (dir: -1 | 1) => {
       const next = Math.max(
@@ -79,23 +83,48 @@ export function CoinCatch({
       playerXRef.current = next
       setPlayerX(next)
     }
-    const onKey = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       const k = e.key
       if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
         e.preventDefault()
         e.stopPropagation()
+        keysHeldRef.current.add(k)
         move(-1)
       } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
         e.preventDefault()
         e.stopPropagation()
+        keysHeldRef.current.add(k)
         move(1)
       } else if (k === ' ' || k === 'ArrowDown' || k === 'ArrowUp') {
         e.preventDefault()
       }
     }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
+    const onKeyUp = (e: KeyboardEvent) => {
+      keysHeldRef.current.delete(e.key)
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    window.addEventListener('keyup', onKeyUp, true)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('keyup', onKeyUp, true)
+    }
   }, [])
+
+  // Pointer-follow (non-reduced only). Centers the pot on the cursor X within the field.
+  useEffect(() => {
+    if (reduced) return
+    const el = fieldRef.current
+    if (!el) return
+    const onPointerMove = (e: PointerEvent) => {
+      if (finishedRef.current) return
+      const rect = el.getBoundingClientRect()
+      const next = Math.max(0, Math.min(FIELD_W - POT_W, e.clientX - rect.left - POT_W / 2))
+      playerXRef.current = next
+      setPlayerX(next)
+    }
+    el.addEventListener('pointermove', onPointerMove)
+    return () => el.removeEventListener('pointermove', onPointerMove)
+  }, [reduced])
 
   // Game loop. Non-reduced: rAF with real dt. Reduced: small base interval
   // (TICK_MS) with spawn accumulator so both step size and spawn rate ramp.
@@ -188,6 +217,16 @@ export function CoinCatch({
         spawn()
       }
 
+      // Held-key glide (continuous movement while key is held).
+      const leftHeld  = keysHeldRef.current.has('ArrowLeft')  || keysHeldRef.current.has('a') || keysHeldRef.current.has('A')
+      const rightHeld = keysHeldRef.current.has('ArrowRight') || keysHeldRef.current.has('d') || keysHeldRef.current.has('D')
+      if (leftHeld || rightHeld) {
+        const dir = (rightHeld ? 1 : 0) - (leftHeld ? 1 : 0)
+        const next = Math.max(0, Math.min(FIELD_W - POT_W, playerXRef.current + dir * GLIDE_PX_PER_MS * dt))
+        playerXRef.current = next
+        setPlayerX(next)
+      }
+
       coinsRef.current = coinsRef.current.map(c => ({
         ...c,
         y: c.y + fallSpeed * dt,
@@ -208,6 +247,7 @@ export function CoinCatch({
 
   return (
     <div
+      ref={fieldRef}
       data-coingame-field
       style={{
         position: 'relative',
