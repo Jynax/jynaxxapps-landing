@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { LiveFeed } from '../parts/useLiveFeed'
-import { ARC, fmt } from './tokens'
+import { ARC, ACCENT_VIOLET, fmt } from './tokens'
 import { ArcadePlayerScene } from './ArcadePlayerScene'
+import { useStats } from './useStats'
 
 const px = { fontFamily: 'var(--font-pixel)' }
 const mono = { fontFamily: 'var(--font-vt)' }
@@ -22,9 +23,20 @@ export function ArcadeLiveStrip({
   reduced: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const stats = useStats()
   const channel = `${(feed.index + 1).toString().padStart(2, '0')}/${feed.total
     .toString()
     .padStart(2, '0')}`
+
+  // Format generatedAt as 'MON YYYY' for the UPDATED honesty tag
+  function updatedLabel(iso: string): string {
+    try {
+      const d = new Date(iso)
+      return d.toLocaleString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()
+    } catch {
+      return ''
+    }
+  }
 
   return (
     <div
@@ -98,12 +110,19 @@ export function ArcadeLiveStrip({
                 LIVE FEED · {feed.total > 1 ? 'ROTATING SET' : 'SINGLE ENTRY'} · SAVE SLOT 87 · AUTOSAVED
               </div>
             </div>
-            <div style={{ borderLeft: `2px solid ${ARC.neon2}55`, paddingLeft: 22 }}>
-              <div style={{ ...px, fontSize: 9, color: ARC.dim, letterSpacing: '0.18em', marginBottom: 12 }}>SCOREBOARD</div>
+            <div data-arcade-scoreboard style={{ borderLeft: `2px solid ${ARC.neon2}55`, paddingLeft: 22 }}>
+              <div style={{ ...px, fontSize: 9, color: ARC.dim, letterSpacing: '0.18em', marginBottom: 12 }}>
+                SCOREBOARD
+                {stats.generatedAt && (
+                  <span style={{ color: ARC.dim, opacity: 0.7 }}>
+                    {' '}· UPDATED {updatedLabel(stats.generatedAt)}
+                  </span>
+                )}
+              </div>
               <div style={{ ...mono, fontSize: 17, lineHeight: 1.6, color: ARC.ink }}>
-                <div>SESSIONS &nbsp;<span style={{ color: ARC.neon3 }}>{fmt(1247)}</span></div>
-                <div>LINES &nbsp;<span style={{ color: ARC.neon2 }}>{fmt(284103)}</span></div>
-                <div>COMMITS &nbsp;<span style={{ color: ARC.neon4 }}>{fmt(612)}</span></div>
+                <div>SINCE &nbsp;<span style={{ color: ARC.neon2 }}>{stats.since}</span></div>
+                <div>PROJECTS &nbsp;<span style={{ color: ARC.neon4 }}>{fmt(stats.projects)}</span></div>
+                <div>PRS MERGED &nbsp;<span style={{ color: ACCENT_VIOLET }}>{fmt(stats.prsMerged)}</span></div>
                 <div>COFFEE &nbsp;<span style={{ color: ARC.neon1 }}>∞</span></div>
               </div>
             </div>
