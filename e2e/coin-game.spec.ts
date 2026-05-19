@@ -176,6 +176,44 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await expect(page.locator('[data-coingame-finalscore]')).toBeVisible();
   });
 
+  test('difficulty ramps: coins fall faster later in a run than at the start', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-arcade-coingame]')).toHaveAttribute('data-coingame-state', 'playing');
+
+    // Sample early fall speed.
+    await page.waitForSelector('[data-coingame-coin]');
+    const earlyY1 = (await page.locator('[data-coingame-coin]').first().boundingBox())!.y;
+    await page.waitForTimeout(200);
+    const earlyY2 = (await page.locator('[data-coingame-coin]').first().boundingBox())!.y;
+    const earlySpeed = (earlyY2 - earlyY1) / 200;
+
+    // Track coins with pointer-follow to survive and let the ramp advance (~8s).
+    const field = page.locator('[data-coingame-field]');
+    const fb = await field.boundingBox();
+    for (let i = 0; i < 80; i++) {
+      const coinBox = await page.locator('[data-coingame-coin]').first().boundingBox().catch(() => null);
+      const targetX = coinBox ? fb!.x + coinBox.x + coinBox.width / 2 : fb!.x + fb!.width / 2;
+      await page.mouse.move(targetX, fb!.y + fb!.height / 2);
+      await page.waitForTimeout(100);
+      const state = await page.locator('[data-arcade-coingame]').getAttribute('data-coingame-state');
+      if (state !== 'playing') break;
+    }
+
+    const state = await page.locator('[data-arcade-coingame]').getAttribute('data-coingame-state');
+    if (state !== 'playing') return;
+
+    // Sample late fall speed.
+    await page.waitForSelector('[data-coingame-coin]');
+    const lateY1 = (await page.locator('[data-coingame-coin]').first().boundingBox())!.y;
+    await page.waitForTimeout(200);
+    const lateY2 = (await page.locator('[data-coingame-coin]').first().boundingBox())!.y;
+    const lateSpeed = (lateY2 - lateY1) / 200;
+
+    expect(lateSpeed).toBeGreaterThan(earlySpeed * 1.3);
+  });
+
   test('collector is the Pot of Gold and is smaller than the old chibi (78px)', async ({ page }) => {
     await page.goto('/#arcade');
     await page.locator('[data-arcade-insert-coin]').click();

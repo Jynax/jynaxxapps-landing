@@ -1,6 +1,6 @@
 // Coin Catch — Arcade easter-egg game. Endless survival: move the pot
-// left/right to catch falling coins; 3 misses ends the run. Score bubbles up
-// via onGameOver and feeds the HUD HI-SCORE.
+// left/right to catch falling coins; 3 misses ends the run. Fall speed and
+// spawn frequency ramp continuously as elapsed time grows.
 //
 // Motion contract (load-bearing): no SVG <animate> anywhere under
 // [data-direction="arcade"]. Motion = div transforms driven by React state.
@@ -16,14 +16,21 @@ const COIN = 22
 const PLAYER_STEP = 34
 const MAX_MISSES = 3 // playtest-tunable miss budget
 
-// Smooth (non-reduced) tuning — playtest-tunable
-const FALL_PX_PER_MS = 0.16
-const SPAWN_MS = 850
+// Smooth (non-reduced) ramp tuning — playtest-tunable
+const FALL_START     = 0.10   // px/ms at game start
+const FALL_CAP       = 0.50   // px/ms at full ramp
+const SPAWN_START_MS = 1200   // spawn interval at game start (ms)
+const SPAWN_MIN_MS   = 300    // spawn interval at full ramp (ms)
+const RAMP_WINDOW_MS = 25_000 // ms to interpolate from start to cap
 
-// Discrete (reduced-motion) tuning — playtest-tunable
-const TICK_MS = 650
-const COIN_STEP = 42
-const SPAWN_EVERY_TICKS = 2
+// Discrete (reduced-motion) ramp tuning — playtest-tunable
+const TICK_MS            = 100  // base interval; small for smooth ramp
+const COIN_STEP_START    = 25   // px/tick at game start
+const COIN_STEP_CAP      = 65   // px/tick at full ramp
+const SPAWN_TICK_START_MS = 1200 // ms between spawns at game start
+const SPAWN_TICK_MIN_MS   = 300  // ms between spawns at full ramp
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t)
 
 interface Coin {
   id: number
@@ -52,7 +59,6 @@ export function CoinCatch({
   const missesRef = useRef(0)
   const elapsedRef = useRef(0)
   const spawnAccRef = useRef(0)
-  const tickRef = useRef(0)
   const nextIdRef = useRef(1)
   const finishedRef = useRef(false)
   const onGameOverRef = useRef(onGameOver)
@@ -91,7 +97,8 @@ export function CoinCatch({
     return () => window.removeEventListener('keydown', onKey, true)
   }, [])
 
-  // Game loop. Non-reduced: rAF with real dt. Reduced: discrete interval.
+  // Game loop. Non-reduced: rAF with real dt. Reduced: small base interval
+  // (TICK_MS) with spawn accumulator so both step size and spawn rate ramp.
   useEffect(() => {
     finishedRef.current = false
 
@@ -138,11 +145,19 @@ export function CoinCatch({
     if (reduced) {
       const id = setInterval(() => {
         elapsedRef.current += TICK_MS
-        tickRef.current += 1
-        if (tickRef.current % SPAWN_EVERY_TICKS === 0) spawn()
+        const t = elapsedRef.current / RAMP_WINDOW_MS
+        const coinStep      = lerp(COIN_STEP_START, COIN_STEP_CAP, t)
+        const spawnInterval = lerp(SPAWN_TICK_START_MS, SPAWN_TICK_MIN_MS, t)
+
+        spawnAccRef.current += TICK_MS
+        if (spawnAccRef.current >= spawnInterval) {
+          spawnAccRef.current -= spawnInterval
+          spawn()
+        }
+
         coinsRef.current = coinsRef.current.map(c => ({
           ...c,
-          y: c.y + COIN_STEP,
+          y: c.y + coinStep,
         }))
         resolveCollisions()
         if (missesRef.current >= MAX_MISSES) {
@@ -162,14 +177,20 @@ export function CoinCatch({
       const dt = ts - lastTs
       lastTs = ts
       elapsedRef.current += dt
+
+      const t = elapsedRef.current / RAMP_WINDOW_MS
+      const fallSpeed     = lerp(FALL_START, FALL_CAP, t)
+      const spawnInterval = lerp(SPAWN_START_MS, SPAWN_MIN_MS, t)
+
       spawnAccRef.current += dt
-      if (spawnAccRef.current >= SPAWN_MS) {
-        spawnAccRef.current -= SPAWN_MS
+      if (spawnAccRef.current >= spawnInterval) {
+        spawnAccRef.current -= spawnInterval
         spawn()
       }
+
       coinsRef.current = coinsRef.current.map(c => ({
         ...c,
-        y: c.y + FALL_PX_PER_MS * dt,
+        y: c.y + fallSpeed * dt,
       }))
       resolveCollisions()
       if (missesRef.current >= MAX_MISSES) {
