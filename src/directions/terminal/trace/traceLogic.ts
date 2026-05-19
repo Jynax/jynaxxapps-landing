@@ -48,3 +48,37 @@ export function puzzleForDate(date: Date, table: Puzzle[]): Puzzle {
   const idx = Math.floor((localMidnight - EPOCH) / dayMs);
   return table[((idx % table.length) + table.length) % table.length];
 }
+
+export type GameStatus = 'playing' | 'won' | 'lost';
+export type Game = {
+  puzzle: Puzzle;
+  path: string[];      // committed words incl. start
+  movesLeft: number;   // remaining valid moves
+  status: GameStatus;
+};
+export type SubmitError = 'length' | 'notword' | 'toofar' | 'same';
+
+export function createGame(puzzle: Puzzle): Game {
+  return { puzzle, path: [puzzle.start], movesLeft: puzzle.par + 5, status: 'playing' };
+}
+
+export function submitWord(
+  game: Game,
+  raw: string,
+  wordSet: ReadonlySet<string>,
+): { game: Game; error?: SubmitError } {
+  if (game.status !== 'playing') return { game };
+  const word = raw.trim().toLowerCase();
+  const cur = game.path[game.path.length - 1];
+  if (word.length !== 5) return { game, error: 'length' };
+  if (word === cur) return { game, error: 'same' };
+  if (!wordSet.has(word)) return { game, error: 'notword' };
+  if (!isOneLetterChange(cur, word)) return { game, error: 'toofar' };
+
+  const path = [...game.path, word];
+  const movesLeft = game.movesLeft - 1;
+  let status: GameStatus = 'playing';
+  if (word === game.puzzle.target) status = 'won';
+  else if (movesLeft <= 0) status = 'lost';
+  return { game: { ...game, path, movesLeft, status } };
+}
