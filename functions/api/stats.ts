@@ -30,15 +30,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return json(null, 404, { 'Cache-Control': 'public, max-age=15' })
   }
 
-  let envelope: StatsEnvelope | null = null
   try {
-    envelope = JSON.parse(stored) as StatsEnvelope
+    const envelope = JSON.parse(stored) as StatsEnvelope
+    return json(envelope, 200, { 'Cache-Control': 'public, max-age=15' })
   } catch {
     // Corrupt value — treat as empty
     return json(null, 404, { 'Cache-Control': 'public, max-age=15' })
   }
-
-  return json(envelope, 200, { 'Cache-Control': 'public, max-age=15' })
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
