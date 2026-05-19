@@ -18,6 +18,7 @@ export function Starfield() {
   const stars = useMemo<Star[]>(() => {
     const s: Star[] = []
     for (let i = 0; i < 80; i++) {
+      if (i === 52) continue // size-2 star centered on the tagline 'digital'
       s.push({
         x: (i * 137.5) % 100,
         y: (i * 73.3) % 100,
