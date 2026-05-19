@@ -23,7 +23,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
   {
     id: 'coin-catch',
     label: 'COIN CATCH',
-    blurb: '◀ ▶ or A / D to move · catch the coins · 15 seconds on the clock',
+    blurb: '◀ ▶ or A / D · mouse steers the pot · catch coins · 3 misses ends the run',
     Component: CoinCatch,
   },
 ]
