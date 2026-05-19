@@ -75,12 +75,10 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await expect(page.locator('[data-direction="arcade"]')).toBeVisible();
   });
 
-  test('game over after the timer, then INSERT COIN rotates to the next game', async ({ browser }) => {
-    // Use reduced-motion context so the game runs the setInterval path — the
-    // rAF-based full-motion loop is not reliably advanced by fake clock because
-    // each frame schedules the next rAF recursively. The reduced-motion variant
-    // uses setInterval(tick, 650ms) which runFor drives deterministically.
-    // (Same pattern used by the reduced-motion test below.)
+  test('missing 3 coins ends the run, then INSERT COIN rotates to the next game', async ({ browser }) => {
+    // Use reduced-motion context so the game runs the setInterval path which
+    // page.clock drives deterministically. The player stays stationary so
+    // most coins fall past (random spawn positions; player covers ~14% of field).
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();
     await page.clock.install();
@@ -90,8 +88,8 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     const overlay = page.locator('[data-arcade-coingame]');
     await expect(overlay).toHaveAttribute('data-coingame-state', 'playing');
 
-    // Run out the 15s clock deterministically via the setInterval path.
-    await page.clock.runFor(16000);
+    // Advance clock until 3 coins fall past the stationary player → game over.
+    await page.clock.runFor(20_000);
     await expect(overlay).toHaveAttribute('data-coingame-state', 'over');
     await expect(page.locator('[data-coingame-finalscore]')).toBeVisible();
 
@@ -157,6 +155,25 @@ test.describe('Arcade insert-coin easter egg (Task #29)', () => {
     await page.locator('[data-arcade-insert-coin]').click();
     await expect(page.locator('[data-arcade-coingame]')).toBeVisible();
     await expect(page.locator('[data-coingame-plays]')).toHaveCount(0);
+  });
+
+  test('no timer: the TIME HUD readout is gone, a LIVES/MISS readout is present', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    await expect(page.locator('[data-arcade-coingame]')).toHaveAttribute('data-coingame-state', 'playing');
+    await expect(page.locator('[data-coingame-timer]')).toHaveCount(0);
+    await expect(page.locator('[data-coingame-lives]')).toHaveCount(1);
+  });
+
+  test('missing 3 coins ends the run (GAME OVER), score still bubbles up', async ({ page }) => {
+    await page.goto('/#arcade');
+    await page.locator('[data-arcade-insert-coin]').click();
+    await page.locator('[data-coingame-insert]').click();
+    // Do NOT move the collector; let coins fall past until 3 misses.
+    await expect(page.locator('[data-arcade-coingame][data-coingame-state="over"]'))
+      .toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-coingame-finalscore]')).toBeVisible();
   });
 
   test('collector is the Pot of Gold and is smaller than the old chibi (78px)', async ({ page }) => {

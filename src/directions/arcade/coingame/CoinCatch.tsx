@@ -1,13 +1,10 @@
-// Coin Catch — game 1 of the Arcade "insert coin" easter-egg rotation
-// (Task #29). Timed 15s run: move the chibi player left/right, catch falling
-// coins, misses don't score. Final score bubbles up via onGameOver and feeds
-// the HUD HI-SCORE.
+// Coin Catch — Arcade easter-egg game. Endless survival: move the pot
+// left/right to catch falling coins; 3 misses ends the run. Score bubbles up
+// via onGameOver and feeds the HUD HI-SCORE.
 //
-// Motion contract (load-bearing — matches the Arcade reduced-motion e2e: no
-// SVG <animate> anywhere under [data-direction="arcade"]): this game animates
-// with div transforms driven by React state, never SMIL. Under reduced motion
-// it switches to a discrete tick-step variant (coins drop one step per beat),
-// so it stays fully playable without continuous motion.
+// Motion contract (load-bearing): no SVG <animate> anywhere under
+// [data-direction="arcade"]. Motion = div transforms driven by React state.
+// Under reduced motion: discrete tick-step variant (fully playable, no rAF).
 
 import { useEffect, useRef, useState } from 'react'
 import { ARC } from '../tokens'
@@ -17,13 +14,13 @@ const FIELD_W = 440
 const FIELD_H = 320
 const COIN = 22
 const PLAYER_STEP = 34
-const DURATION_MS = 15_000
+const MAX_MISSES = 3 // playtest-tunable miss budget
 
-// Smooth (non-reduced) tuning.
+// Smooth (non-reduced) tuning — playtest-tunable
 const FALL_PX_PER_MS = 0.16
 const SPAWN_MS = 850
 
-// Discrete (reduced-motion) tuning.
+// Discrete (reduced-motion) tuning — playtest-tunable
 const TICK_MS = 650
 const COIN_STEP = 42
 const SPAWN_EVERY_TICKS = 2
@@ -46,12 +43,13 @@ export function CoinCatch({
   const [playerX, setPlayerX] = useState((FIELD_W - POT_W) / 2)
   const [coins, setCoins] = useState<Coin[]>([])
   const [score, setScore] = useState(0)
-  const [secondsLeft, setSecondsLeft] = useState(Math.ceil(DURATION_MS / 1000))
+  const [misses, setMisses] = useState(0)
 
   // Authoritative mutable game state (refs — render state is a mirror).
   const playerXRef = useRef(playerX)
   const coinsRef = useRef<Coin[]>([])
   const scoreRef = useRef(0)
+  const missesRef = useRef(0)
   const elapsedRef = useRef(0)
   const spawnAccRef = useRef(0)
   const tickRef = useRef(0)
@@ -64,10 +62,8 @@ export function CoinCatch({
 
   const playerTopY = FIELD_H - POT_H
 
-  // Single window-capture key handler for movement. Capture phase + the game
-  // being mounted only while playing means LiveShell's 1–4 switcher never sees
-  // these. Escape is deliberately left to bubble (the overlay shell closes on
-  // it). Arrow/Space defaults are prevented so the page behind never scrolls.
+  // Window-capture key handler. Capture phase ensures LiveShell's 1–4 switcher
+  // never sees Arrow/A/D while the game is mounted. Escape bubbles (overlay closes).
   useEffect(() => {
     const move = (dir: -1 | 1) => {
       const next = Math.max(
@@ -88,15 +84,14 @@ export function CoinCatch({
         e.stopPropagation()
         move(1)
       } else if (k === ' ' || k === 'ArrowDown' || k === 'ArrowUp') {
-        e.preventDefault() // swallow scroll keys while playing
+        e.preventDefault()
       }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
   }, [])
 
-  // Game loop. Non-reduced: requestAnimationFrame with real dt. Reduced:
-  // a slow discrete interval (coins step down one row per beat).
+  // Game loop. Non-reduced: rAF with real dt. Reduced: discrete interval.
   useEffect(() => {
     finishedRef.current = false
 
@@ -116,9 +111,12 @@ export function CoinCatch({
         const overlap = c.x + COIN > px0 && c.x < px0 + POT_W
         if (reachedBand && overlap) {
           scoreRef.current += 1
-          continue // caught — remove
+          continue // caught
         }
-        if (c.y > FIELD_H) continue // missed — remove, no score
+        if (c.y > FIELD_H) {
+          missesRef.current += 1 // missed
+          continue
+        }
         kept.push(c)
       }
       coinsRef.current = kept
@@ -127,9 +125,7 @@ export function CoinCatch({
     const mirror = () => {
       setCoins(coinsRef.current.map(c => ({ ...c })))
       setScore(scoreRef.current)
-      setSecondsLeft(
-        Math.max(0, Math.ceil((DURATION_MS - elapsedRef.current) / 1000)),
-      )
+      setMisses(missesRef.current)
     }
 
     const finish = () => {
@@ -149,7 +145,7 @@ export function CoinCatch({
           y: c.y + COIN_STEP,
         }))
         resolveCollisions()
-        if (elapsedRef.current >= DURATION_MS) {
+        if (missesRef.current >= MAX_MISSES) {
           clearInterval(id)
           finish()
           return
@@ -176,7 +172,7 @@ export function CoinCatch({
         y: c.y + FALL_PX_PER_MS * dt,
       }))
       resolveCollisions()
-      if (elapsedRef.current >= DURATION_MS) {
+      if (missesRef.current >= MAX_MISSES) {
         finish()
         return
       }
@@ -186,6 +182,8 @@ export function CoinCatch({
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
   }, [reduced, playerTopY])
+
+  const livesLeft = MAX_MISSES - misses
 
   return (
     <div
@@ -203,7 +201,7 @@ export function CoinCatch({
         boxShadow: `inset 0 0 40px ${ARC.neon2}22`,
       }}
     >
-      {/* HUD: score + clock */}
+      {/* HUD: score + lives */}
       <div
         style={{
           position: 'absolute',
@@ -222,8 +220,8 @@ export function CoinCatch({
         <span data-coingame-score style={{ color: ARC.neon3 }}>
           SCORE&nbsp;<span style={{ color: ARC.ink }}>{score}</span>
         </span>
-        <span data-coingame-timer style={{ color: ARC.neon2 }}>
-          TIME&nbsp;<span style={{ color: ARC.ink }}>{secondsLeft}</span>
+        <span data-coingame-lives style={{ color: ARC.neon1 }}>
+          {'●'.repeat(Math.max(0, livesLeft))}{'○'.repeat(Math.min(misses, MAX_MISSES))}
         </span>
       </div>
 
