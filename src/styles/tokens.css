@@ -131,6 +131,26 @@
 
   /* Default easing — feels right for both retro decks and modern panels */
   --ease-out:      cubic-bezier(.2, .7, .3, 1);
+
+  /* ─────────────────────────────────────────────────────────────────
+   * MOBILE — safe-area inset helpers (use with env())
+   * Use dvh on full-screen surfaces so they resize when OS keyboard opens.
+   * ──────────────────────────────────────────────────────────────── */
+  --safe-area-top:    env(safe-area-inset-top,    0px);
+  --safe-area-right:  env(safe-area-inset-right,  0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left:   env(safe-area-inset-left,   0px);
+}
+
+/* Global anchor scroll offset — prevents sticky chrome from hiding anchor targets */
+[id] {
+  scroll-margin-top: 64px;
+}
+
+/* Bottom-sheet entry animation — used by BottomSheet primitive */
+@keyframes sheet-slide-in {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
 
 /* ───────────────────────────────────────────────────────────────────
