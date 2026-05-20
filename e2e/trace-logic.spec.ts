@@ -72,7 +72,7 @@ test('createGame: budget = par + 5, starts playing', () => {
 });
 
 test('submitWord: valid move advances, decrements budget', () => {
-  let g = createGame({ id: 1, start: 'stare', target: 'shone', par: 4 });
+  const g = createGame({ id: 1, start: 'stare', target: 'shone', par: 4 });
   const r = submitWord(g, 'scare', SET);
   expect(r.error).toBeUndefined();
   expect(r.game.path).toEqual(['stare', 'scare']);

@@ -3,7 +3,7 @@
 // only uses window keydown, which the overlay suppresses from the LiveShell
 // direction-switcher via stopPropagation.
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { createGame, submitWord } from './traceLogic'
 import type { Puzzle, Game, SubmitError } from './traceLogic'
 import { WORD_SET } from './words5'
@@ -33,11 +33,19 @@ export function TraceGame({
   const [error,    setError]    = useState<string | null>(null)
 
   // Refs keep event-listener closures fresh without re-registering on every render.
-  const gameRef      = useRef(game);     gameRef.current     = game
-  const entryRef     = useRef(entry);    entryRef.current    = entry
-  const onEndRef     = useRef(onEnd);    onEndRef.current    = onEnd
-  const reducedRef   = useRef(reduced);  reducedRef.current  = reduced
-  const errorTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Updated in useLayoutEffect (not during render) per the react-hooks/refs rule.
+  const gameRef    = useRef(game)
+  const entryRef   = useRef(entry)
+  const onEndRef   = useRef(onEnd)
+  const reducedRef = useRef(reduced)
+  const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useLayoutEffect(() => {
+    gameRef.current    = game
+    entryRef.current   = entry
+    onEndRef.current   = onEnd
+    reducedRef.current = reduced
+  })
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -78,7 +86,6 @@ export function TraceGame({
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => () => { if (errorTimer.current) clearTimeout(errorTimer.current) }, [])
