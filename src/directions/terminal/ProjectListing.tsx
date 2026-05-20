@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Project } from '../../data/jxData'
 import { JX_STATUS } from '../../data/jxData'
 
@@ -14,6 +14,24 @@ interface ProjectRowProps {
   project: Project
 }
 
+function useMediaQuery(query: string, defaultValue = false) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return defaultValue
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    const update = () => setMatches(media.matches)
+
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [query])
+
+  return matches
+}
+
 /**
  * One interactive listing row (per design-spec-terminal.md "Project listing row").
  *
@@ -27,8 +45,24 @@ interface ProjectRowProps {
 function ProjectRow({ project }: ProjectRowProps) {
   const [open, setOpen] = useState(false)
   const [hover, setHover] = useState(false)
+  const [pressed, setPressed] = useState(false)
+  const pressTimer = useRef<number | undefined>(undefined)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const status = JX_STATUS[project.status]
   const hasHref = project.href !== '#'
+
+  useEffect(() => {
+    return () => {
+      if (pressTimer.current !== undefined) window.clearTimeout(pressTimer.current)
+    }
+  }, [])
+
+  const flashPressed = () => {
+    if (isDesktop) return
+    setPressed(true)
+    if (pressTimer.current !== undefined) window.clearTimeout(pressTimer.current)
+    pressTimer.current = window.setTimeout(() => setPressed(false), 120)
+  }
 
   return (
     <div>
@@ -36,78 +70,134 @@ function ProjectRow({ project }: ProjectRowProps) {
         data-project-row
         type="button"
         onClick={() => setOpen(v => !v)}
+        onPointerDown={flashPressed}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         aria-expanded={open}
         style={{
           display: 'grid',
-          gridTemplateColumns: '16px 150px 1fr 140px 100px',
-          alignItems: 'baseline',
-          gap: 16,
+          gridTemplateColumns: isDesktop ? '16px 150px 1fr 140px 100px' : '1fr',
+          alignItems: isDesktop ? 'baseline' : 'stretch',
+          gap: isDesktop ? 16 : 2,
           width: '100%',
           textAlign: 'left',
-          background: hover ? 'rgba(244,185,66,0.035)' : 'transparent',
+          height: isDesktop ? undefined : 64,
+          background: isDesktop
+            ? hover ? 'rgba(244,185,66,0.035)' : 'transparent'
+            : pressed ? 'rgba(244,185,66,0.12)' : 'rgba(244,185,66,0.025)',
           border: 'none',
-          borderBottom: '1px solid rgba(244,185,66,0.08)',
-          padding: '9px 6px',
+          borderBottom: isDesktop
+            ? '1px solid rgba(244,185,66,0.08)'
+            : '1px solid rgba(244,185,66,0.06)',
+          padding: isDesktop ? '9px 6px' : '6px 10px',
           cursor: 'pointer',
           fontFamily: 'var(--font-mono)',
           fontSize: 14,
           color: 'var(--term-fg)',
-          lineHeight: 1.5,
+          lineHeight: isDesktop ? 1.5 : 1.2,
         }}
       >
-        {/* arrow */}
-        <span style={{ color: 'var(--term-fg-dim)' }}>{open ? '▾' : '▸'}</span>
+        {isDesktop ? (
+          <>
+            {/* arrow */}
+            <span style={{ color: 'var(--term-fg-dim)' }}>{open ? '▾' : '▸'}</span>
 
-        {/* status */}
-        <span
-          style={{
-            color: status.color,
-            fontSize: 11,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            textShadow: '0 0 6px rgba(244,185,66,0.25)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {status.label}
-        </span>
+            {/* status */}
+            <span
+              style={{
+                color: status.color,
+                fontSize: 11,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                textShadow: '0 0 6px rgba(244,185,66,0.25)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {status.label}
+            </span>
 
-        {/* name + tag */}
-        <span style={{ minWidth: 0 }}>
-          <span style={{ color: 'var(--term-fg-bright)', textShadow: 'var(--term-glow)' }}>
-            {project.chapter} {project.name}
-          </span>
-          <span style={{ color: 'var(--term-fg-dim)' }}>{'  '}— {project.tag}</span>
-        </span>
+            {/* name + tag */}
+            <span style={{ minWidth: 0 }}>
+              <span style={{ color: 'var(--term-fg-bright)', textShadow: 'var(--term-glow)' }}>
+                {project.chapter} {project.name}
+              </span>
+              <span style={{ color: 'var(--term-fg-dim)' }}>{'  '}— {project.tag}</span>
+            </span>
 
-        {/* touched */}
-        <span
-          style={{
-            color: 'var(--term-fg-dim)',
-            fontSize: 12,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {project.touched}
-        </span>
+            {/* touched */}
+            <span
+              style={{
+                color: 'var(--term-fg-dim)',
+                fontSize: 12,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {project.touched}
+            </span>
 
-        {/* cat ./ display-only affordance */}
-        <span
-          style={{
-            color: 'var(--term-fg-dim)',
-            fontSize: 12,
-            textAlign: 'right',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {open ? 'close' : `cat ./${project.id}`}
-        </span>
+            {/* cat ./ display-only affordance */}
+            <span
+              style={{
+                color: 'var(--term-fg-dim)',
+                fontSize: 12,
+                textAlign: 'right',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {open ? 'close' : `cat ./${project.id}`}
+            </span>
+          </>
+        ) : (
+          <>
+            <span
+              style={{
+                justifySelf: 'start',
+                color: status.color,
+                fontSize: 10,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                textShadow: '0 0 6px rgba(244,185,66,0.25)',
+                whiteSpace: 'nowrap',
+                border: `1px solid ${status.color}`,
+                borderRadius: 2,
+                padding: '1px 5px',
+                lineHeight: 1.1,
+              }}
+            >
+              {status.label}
+            </span>
+            <span
+              style={{
+                minWidth: 0,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              <span style={{ color: 'var(--term-fg-dim)' }}>{open ? '▾' : '▸'} </span>
+              <span style={{ color: 'var(--term-fg-bright)', textShadow: 'var(--term-glow)' }}>
+                {project.chapter} {project.name}
+              </span>
+              <span style={{ color: 'var(--term-fg-dim)' }}>{'  '}{project.tag}</span>
+            </span>
+            <span
+              style={{
+                color: 'var(--term-fg-dim)',
+                fontSize: 12,
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {project.touched} · {open ? 'close' : `cat ./${project.id}`}
+            </span>
+          </>
+        )}
       </button>
 
       {open && (
@@ -116,8 +206,8 @@ function ProjectRow({ project }: ProjectRowProps) {
           style={{
             border: '1px solid var(--term-accent)',
             borderRadius: 2,
-            margin: '10px 0 18px',
-            padding: '18px 22px',
+            margin: isDesktop ? '10px 0 18px' : '0 0 14px',
+            padding: isDesktop ? '18px 22px' : '16px',
             fontFamily: 'var(--font-mono)',
             fontSize: 14,
             color: 'var(--term-fg)',
@@ -147,28 +237,46 @@ function ProjectRow({ project }: ProjectRowProps) {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 2fr 1fr',
-              gap: 20,
+              gridTemplateColumns: isDesktop ? '1fr 2fr 1fr' : '1fr',
+              gap: isDesktop ? 20 : 10,
               fontSize: 12,
               color: 'var(--term-fg-dim)',
             }}
           >
-            <div>
-              <div style={{ letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>
+            <div
+              style={{
+                display: isDesktop ? 'block' : 'grid',
+                gridTemplateColumns: isDesktop ? undefined : '82px minmax(0, 1fr)',
+                gap: isDesktop ? undefined : 12,
+              }}
+            >
+              <div style={{ letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: isDesktop ? 5 : 0 }}>
                 started
               </div>
               <div style={{ color: 'var(--term-fg)' }}>{project.started}</div>
             </div>
-            <div>
-              <div style={{ letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>
+            <div
+              style={{
+                display: isDesktop ? 'block' : 'grid',
+                gridTemplateColumns: isDesktop ? undefined : '82px minmax(0, 1fr)',
+                gap: isDesktop ? undefined : 12,
+              }}
+            >
+              <div style={{ letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: isDesktop ? 5 : 0 }}>
                 stack
               </div>
               <div style={{ color: 'var(--term-fg)' }}>
                 {project.stack.length > 0 ? project.stack.join(' · ') : '—'}
               </div>
             </div>
-            <div>
-              <div style={{ letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>
+            <div
+              style={{
+                display: isDesktop ? 'block' : 'grid',
+                gridTemplateColumns: isDesktop ? undefined : '82px minmax(0, 1fr)',
+                gap: isDesktop ? undefined : 12,
+              }}
+            >
+              <div style={{ letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: isDesktop ? 5 : 0 }}>
                 address
               </div>
               <div style={{ color: 'var(--term-fg)' }}>{project.slug}</div>
@@ -183,7 +291,11 @@ function ProjectRow({ project }: ProjectRowProps) {
               rel="noopener noreferrer"
               aria-label={`Open ${project.name}`}
               style={{
-                display: 'inline-block',
+                display: isDesktop ? 'inline-block' : 'flex',
+                alignItems: isDesktop ? undefined : 'center',
+                justifyContent: isDesktop ? undefined : 'space-between',
+                minHeight: isDesktop ? undefined : 44,
+                width: isDesktop ? undefined : '100%',
                 marginTop: 18,
                 color: 'var(--term-fg-bright)',
                 textShadow: 'var(--term-glow)',
