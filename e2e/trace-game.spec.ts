@@ -207,6 +207,12 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     await expect(playerPath).toBeVisible();
     await expect(playerPath).toContainText('STARE');
     await expect(playerPath).toContainText('SHONE');
+
+    // Spec §10 — no icons. Over header uses the boot-log idiom.
+    const overlay = page.locator('[data-trace-overlay]');
+    await expect(overlay).toContainText('[ OK ] route resolved');
+    await expect(overlay).not.toContainText('✓');
+    await expect(overlay).not.toContainText('✕');
   });
 
   test('over screen: player path is shown after a loss', async ({ page }) => {
@@ -228,6 +234,12 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     const playerPath = page.locator('[data-trace-player-path]');
     await expect(playerPath).toBeVisible();
     await expect(playerPath).toContainText('STARE');
+
+    // Spec §10 — no icons. Over header uses the boot-log idiom.
+    const overlay = page.locator('[data-trace-overlay]');
+    await expect(overlay).toContainText('[FAIL] no route — connection dropped');
+    await expect(overlay).not.toContainText('✓');
+    await expect(overlay).not.toContainText('✕');
   });
 
   test('modifier keys (Ctrl/Meta/Alt) do not feed letters into the entry', async ({ page }) => {

@@ -335,8 +335,8 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
               textShadow: 'var(--term-glow)', marginBottom: 12,
             }}>
               {overData.result === 'win'
-                ? '✓ route resolved'
-                : '✕ no route — connection dropped'}
+                ? '[ OK ] route resolved'
+                : '[FAIL] no route — connection dropped'}
             </div>
 
             {/* Win: move count */}
