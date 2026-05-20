@@ -176,6 +176,83 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     await expect(page.locator('[data-direction="terminal"]')).toBeVisible();
   });
 
+  test('attract screen: par/budget line is not shown', async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as Window & { __TRACE_TEST__?: unknown }).__TRACE_TEST__ =
+        { dateISO: '2026-05-19', puzzleId: 1 };
+    });
+    await page.goto('/#terminal');
+    await page.locator('[data-trace-open]').click();
+    await expect(page.locator('[data-trace-overlay]')).toHaveAttribute('data-trace-phase', 'attract');
+    await expect(page.locator('[data-trace-overlay]')).not.toContainText('budget');
+  });
+
+  test('over screen: player path is shown after a win', async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as Window & { __TRACE_TEST__?: unknown }).__TRACE_TEST__ =
+        { dateISO: '2026-05-19', puzzleId: 1 };
+    });
+    await page.goto('/#terminal');
+    await page.locator('[data-trace-open]').click();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-trace-game]')).toBeVisible();
+
+    for (const word of ['share', 'shore', 'shone']) {
+      await page.keyboard.type(word);
+      await page.keyboard.press('Enter');
+    }
+
+    await expect(page.locator('[data-trace-overlay]')).toHaveAttribute('data-trace-phase', 'over');
+    const playerPath = page.locator('[data-trace-player-path]');
+    await expect(playerPath).toBeVisible();
+    await expect(playerPath).toContainText('STARE');
+    await expect(playerPath).toContainText('SHONE');
+  });
+
+  test('over screen: player path is shown after a loss', async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as Window & { __TRACE_TEST__?: unknown }).__TRACE_TEST__ =
+        { dateISO: '2026-05-19', puzzleId: 1 };
+    });
+    await page.goto('/#terminal');
+    await page.locator('[data-trace-open]').click();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-trace-game]')).toBeVisible();
+
+    for (const word of ['scare', 'share', 'shore', 'store', 'score', 'scare', 'share', 'shore']) {
+      await page.keyboard.type(word);
+      await page.keyboard.press('Enter');
+    }
+
+    await expect(page.locator('[data-trace-overlay]')).toHaveAttribute('data-trace-phase', 'over');
+    const playerPath = page.locator('[data-trace-player-path]');
+    await expect(playerPath).toBeVisible();
+    await expect(playerPath).toContainText('STARE');
+  });
+
+  test('modifier keys (Ctrl/Meta/Alt) do not feed letters into the entry', async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as Window & { __TRACE_TEST__?: unknown }).__TRACE_TEST__ =
+        { dateISO: '2026-05-19', puzzleId: 1 };
+    });
+    await page.goto('/#terminal');
+    await page.locator('[data-trace-open]').click();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-trace-game]')).toBeVisible();
+
+    // 's' + Ctrl+H (would inject an extra 'h' without the guard) + 'hare'
+    // Correct: entry = 'share' (valid 1-step move, accepted silently).
+    // Broken:  entry = 'shhar' (truncated from 6) → "not a word" error.
+    await page.keyboard.press('s');
+    await page.keyboard.press('Control+h');
+    await page.keyboard.type('hare');
+    await page.keyboard.press('Enter');
+
+    const game = page.locator('[data-trace-game]');
+    await expect(game).toContainText('SHARE');
+    await expect(game).not.toContainText('not a word');
+  });
+
   test('reduced-motion: overlay renders and completes a game with zero thrown errors', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await context.newPage();

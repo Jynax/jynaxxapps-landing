@@ -196,7 +196,7 @@ export default function Terminal() {
 
         {/* 6 — tail -f /var/log/jynaxx/now (live feed) */}
         <div style={section} data-term-section="now">
-          <LiveNow onOpenPuzzle={() => setTraceOpen(true)} />
+          <LiveNow onOpenPuzzle={() => setTraceOpen(true)} paused={traceOpen} />
         </div>
 
         {/* 7 — ls -la ~/apps/ (6 public) */}

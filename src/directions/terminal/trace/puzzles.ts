@@ -8,8 +8,8 @@ export const PUZZLES: Puzzle[] = [
   { id: 2, start: 'brain', target: 'grind', par: 4 },  // brain→braid→brand→grand→grind
   { id: 3, start: 'blaze', target: 'grace', par: 3 },  // blaze→glaze→graze→grace
   { id: 4, start: 'storm', target: 'sworn', par: 3 },  // storm→store→swore→sworn
-  { id: 5, start: 'drink', target: 'grind', par: 4 },  // drink→brink→brins→grins→grind
-  { id: 6, start: 'mourn', target: 'mount', par: 5 },  // mourn→bourn→bourd→bound→mound→mount
-  { id: 7, start: 'crane', target: 'flame', par: 4 },  // crane→grane→grame→frame→flame
-  { id: 8, start: 'black', target: 'white', par: 7 },  // black→alack→alick→alice→alite→arite→write→white
+  { id: 5, start: 'breed', target: 'bland', par: 3 },  // breed→bleed→blend→bland
+  { id: 6, start: 'groan', target: 'brain', par: 3 },  // groan→groin→grain→brain
+  { id: 7, start: 'shore', target: 'stale', par: 3 },  // shore→store→stare→stale
+  { id: 8, start: 'grind', target: 'bland', par: 3 },  // grind→grand→brand→bland
 ];
