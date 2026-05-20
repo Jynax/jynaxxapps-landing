@@ -4,6 +4,7 @@
 // from terminal.jsx. The 12-section structure / semantic HTML / reduced-motion /
 // data-from-jxData were spec-reviewed and approved and are intentionally kept.
 
+import { useState } from 'react'
 import { JX_PROJECTS, JX_FOOTER } from '../data/jxData'
 import { Prompt } from './parts/Prompt'
 import { LiveNow } from './terminal/LiveNow'
@@ -17,6 +18,7 @@ import { ProjectListing } from './terminal/ProjectListing'
 import { ManifestoBox } from './terminal/ManifestoBox'
 import { ContactBlock } from './terminal/ContactBlock'
 import { CursorPrompt } from './terminal/CursorPrompt'
+import { TraceOverlay } from './terminal/trace/TraceOverlay'
 
 /**
  * Block 3 — boot log. The 7 vintage POST self-test lines below are reproduced
@@ -69,6 +71,7 @@ export default function Terminal() {
   // shell unmounts/remounts directions on toggle, so a fresh mount restarts it).
   const visible = useBootStream(BOOT_LINES.length)
   const reduced = useReducedMotion()
+  const [traceOpen, setTraceOpen] = useState(false)
 
   // Enhancement beyond the canonical reference (where `help` is a static
   // signpost): clicking a command jumps to its on-page section. Pure in-page
@@ -193,7 +196,7 @@ export default function Terminal() {
 
         {/* 6 — tail -f /var/log/jynaxx/now (live feed) */}
         <div style={section} data-term-section="now">
-          <LiveNow />
+          <LiveNow onOpenPuzzle={() => setTraceOpen(true)} />
         </div>
 
         {/* 7 — ls -la ~/apps/ (6 public) */}
@@ -244,6 +247,8 @@ export default function Terminal() {
           </span>
         </footer>
       </div>
+
+      {traceOpen && <TraceOverlay onClose={() => setTraceOpen(false)} />}
     </section>
   )
 }

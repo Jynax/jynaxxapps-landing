@@ -63,7 +63,13 @@ function Key({ label, lit, wide }: { label: string; lit: boolean; wide?: boolean
   )
 }
 
-export function PhosphorKeyboard({ activeChar }: { activeChar: string }) {
+export function PhosphorKeyboard({
+  activeChar,
+  onOpenPuzzle,
+}: {
+  activeChar:     string
+  onOpenPuzzle?: () => void
+}) {
   const active = activeChar ? normalize(activeChar) : ''
 
   return (
@@ -76,6 +82,7 @@ export function PhosphorKeyboard({ activeChar }: { activeChar: string }) {
         padding: 10,
         border: '1px solid rgba(244,185,66,0.16)',
         background: 'rgba(244,185,66,0.03)',
+        position: 'relative',
       }}
     >
       {ROWS.map((row, r) => (
@@ -97,6 +104,50 @@ export function PhosphorKeyboard({ activeChar }: { activeChar: string }) {
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
         <Key label="SPACE" lit={active === 'SPACE'} wide />
       </div>
+
+      {/* Hidden daily puzzle trigger — dim ? at bottom-right of the keyboard */}
+      {onOpenPuzzle && (
+        <button
+          type="button"
+          aria-hidden="false"
+          aria-label="Open daily word puzzle"
+          data-trace-open
+          onClick={onOpenPuzzle}
+          style={{
+            position: 'absolute',
+            bottom: 6,
+            right: 6,
+            width: 18,
+            height: 18,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            lineHeight: 1,
+            color: 'var(--term-fg-dim)',
+            background: 'transparent',
+            border: '1px solid rgba(244,185,66,0.22)',
+            cursor: 'pointer',
+            userSelect: 'none',
+            transition: 'color 200ms, border-color 200ms, box-shadow 200ms',
+          }}
+          onMouseEnter={e => {
+            const b = e.currentTarget
+            b.style.color = 'var(--term-fg-bright)'
+            b.style.borderColor = 'var(--term-fg-bright)'
+            b.style.boxShadow = 'var(--term-glow)'
+          }}
+          onMouseLeave={e => {
+            const b = e.currentTarget
+            b.style.color = 'var(--term-fg-dim)'
+            b.style.borderColor = 'rgba(244,185,66,0.22)'
+            b.style.boxShadow = 'none'
+          }}
+        >
+          ?
+        </button>
+      )}
     </div>
   )
 }

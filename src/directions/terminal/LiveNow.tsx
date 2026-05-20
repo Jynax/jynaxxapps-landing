@@ -20,7 +20,15 @@ import { PhosphorKeyboard } from './PhosphorKeyboard'
 
 const BLINK = `@keyframes jx-term-live-blink { 0%,49% { opacity: 1 } 50%,100% { opacity: 0 } }`
 
-function TailLine({ activity, reduced }: { activity: string; reduced: boolean }) {
+function TailLine({
+  activity,
+  reduced,
+  onOpenPuzzle,
+}: {
+  activity:      string
+  reduced:       boolean
+  onOpenPuzzle?: () => void
+}) {
   const shown = useTypeOut(activity)
   const text = activity.slice(0, shown)
   const activeChar = shown > 0 ? activity[shown - 1] : ''
@@ -53,12 +61,12 @@ function TailLine({ activity, reduced }: { activity: string; reduced: boolean })
           █
         </span>
       </p>
-      <PhosphorKeyboard activeChar={activeChar} />
+      <PhosphorKeyboard activeChar={activeChar} onOpenPuzzle={onOpenPuzzle} />
     </>
   )
 }
 
-export function LiveNow() {
+export function LiveNow({ onOpenPuzzle }: { onOpenPuzzle?: () => void }) {
   const feed = useLiveFeed()
   const reduced = useReducedMotion()
 
@@ -81,7 +89,12 @@ export function LiveNow() {
           {feed.index + 1}/{feed.total}
         </span>
       </div>
-      <TailLine key={feed.activity} activity={feed.activity} reduced={reduced} />
+      <TailLine
+        key={feed.activity}
+        activity={feed.activity}
+        reduced={reduced}
+        onOpenPuzzle={onOpenPuzzle}
+      />
     </div>
   )
 }
