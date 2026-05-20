@@ -1,39 +1,42 @@
 // Reconciled against canonical terminal.jsx: the chrome strings below match
 // canonical's CRT top exactly (`JYNAXX-OS v2.6.0 / phosphor terminal` left,
 // `tty1 · 80×40 · ▮ amber` right). No outstanding deviation.
+//
+// Mobile (§M.3): stacks vertically, drops `80×40` (meaningless on phone),
+// shortens left side to `JYNAXX-OS · v2.6.0`, total height ~36px.
+
+interface CrtHeaderProps {
+  isMobile?: boolean
+}
 
 /**
  * Block 1 — CRT chrome header.
  *
- * Per design-spec-terminal.md "Page structure" #1 / canonical terminal.jsx:
- *   left  → `JYNAXX-OS v2.6.0 / phosphor terminal`
- *   right → `tty1 · 80×40 · ▮ amber`
- *
- * Dim chrome color, monospace, uppercase tracking. Not a heading (chrome only).
+ * Desktop: `JYNAXX-OS v2.6.0 / phosphor terminal` left, `tty1 · 80×40 · ▮ amber` right.
+ * Mobile:  stacked — `JYNAXX-OS · v2.6.0` / `tty1 · ▮ amber`, no 80×40.
  */
-export function CrtHeader() {
+export function CrtHeader({ isMobile = false }: CrtHeaderProps) {
   return (
     <div
       style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'baseline',
-        gap: 16,
-        flexWrap: 'wrap',
         fontFamily: 'var(--font-mono)',
         fontSize: 11,
         letterSpacing: '0.12em',
         textTransform: 'uppercase',
         color: 'var(--term-fg-dim)',
         borderBottom: '1px solid rgba(244,185,66,0.14)',
-        paddingBottom: 14,
+        paddingBottom: isMobile ? 6 : 14,
+        ...(isMobile
+          ? { display: 'flex', flexDirection: 'column', gap: 4 }
+          : { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }
+        ),
       }}
     >
       <span style={{ textShadow: 'var(--term-glow)' }}>
-        JYNAXX-OS v2.6.0 / phosphor terminal
+        {isMobile ? 'JYNAXX-OS · v2.6.0' : 'JYNAXX-OS v2.6.0 / phosphor terminal'}
       </span>
       <span style={{ whiteSpace: 'nowrap' }}>
-        tty1 · 80×40 · ▮ amber
+        {isMobile ? 'tty1 · ▮ amber' : 'tty1 · 80×40 · ▮ amber'}
       </span>
     </div>
   )
