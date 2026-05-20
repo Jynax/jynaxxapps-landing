@@ -3,14 +3,18 @@
 // Boot-log content and the `help` command list below are reproduced faithfully
 // from terminal.jsx. The 12-section structure / semantic HTML / reduced-motion /
 // data-from-jxData were spec-reviewed and approved and are intentionally kept.
+//
+// Mobile (§M.1–§M.5): container padding 28px 20px 96px; 4-line boot log at 70ms
+// cadence; CRT header stacked; ASCII title 22px; help rows 44px touch targets.
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { JX_PROJECTS, JX_FOOTER } from '../data/jxData'
 import { Prompt } from './parts/Prompt'
 import { LiveNow } from './terminal/LiveNow'
 import { BootLine } from './parts/BootLine'
 import { useBootStream } from './parts/useBootStream'
 import { useReducedMotion } from './parts/useReducedMotion'
+import { useIsMobile } from './parts/useIsMobile'
 import { CrtHeader } from './terminal/CrtHeader'
 import { AsciiTitle } from './terminal/AsciiTitle'
 import { AboutBlock } from './terminal/AboutBlock'
@@ -49,6 +53,18 @@ const BOOT_LINES: { status: 'OK' | 'WARN' | 'FAIL'; text: string }[] = [
 ]
 
 /**
+ * Mobile boot log — 4 lines (§M.4). Shorter sequence so visitor reaches `help`
+ * faster. Decorative lines dropped; boot flavor preserved. No dot-leaders
+ * (BootLine mobile mode skips dot-padding; wraps with hanging indent if needed).
+ */
+const MOBILE_BOOT_LINES: { status: 'OK' | 'WARN' | 'FAIL'; text: string }[] = [
+  { status: 'OK',   text: 'POST self-test passed' },
+  { status: 'OK',   text: 'workshop manifest loaded' },
+  { status: 'WARN', text: 'coffee.daemon low fuel' },
+  { status: 'OK',   text: 'ready. type help for commands.' },
+]
+
+/**
  * Block 4 — the commands `help` lists. Reproduced faithfully from canonical
  * terminal.jsx's `help` block (commands + descriptions, in canonical order):
  * about, now, ls, manifesto, contact. The spec's "5 commands" was approximate;
@@ -67,11 +83,25 @@ const publicProjects = JX_PROJECTS.filter(p => p.group === 'public')
 const workshopProjects = JX_PROJECTS.filter(p => p.group === 'workshop')
 
 export default function Terminal() {
-  // Boot log streaming — re-runs whenever the Terminal component mounts (the
-  // shell unmounts/remounts directions on toggle, so a fresh mount restarts it).
-  const visible = useBootStream(BOOT_LINES.length)
+  const isMobile = useIsMobile()
   const reduced = useReducedMotion()
   const [traceOpen, setTraceOpen] = useState(false)
+
+  // Mobile help row pressed state (§M.5): rgba amber bg for 120ms on tap.
+  const [pressedCmd, setPressedCmd] = useState<string | null>(null)
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (pressTimerRef.current) clearTimeout(pressTimerRef.current)
+    }
+  }, [])
+
+  // Boot log streaming — re-runs whenever the Terminal component mounts (the
+  // shell unmounts/remounts directions on toggle, so a fresh mount restarts it).
+  // Mobile: 4-line array at 70ms cadence (§M.4). Desktop: 8 lines at 80ms.
+  const bootLines = isMobile ? MOBILE_BOOT_LINES : BOOT_LINES
+  const visible = useBootStream(bootLines.length, isMobile ? 70 : 80)
 
   // Enhancement beyond the canonical reference (where `help` is a static
   // signpost): clicking a command jumps to its on-page section. Pure in-page
@@ -81,6 +111,13 @@ export default function Terminal() {
     document
       .querySelector(`[data-term-section="${id}"]`)
       ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+  }
+
+  const handleHelpTap = (cmd: string) => {
+    setPressedCmd(cmd)
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current)
+    pressTimerRef.current = setTimeout(() => setPressedCmd(null), 120)
+    jumpToSection(cmd)
   }
 
   const section: React.CSSProperties = { marginTop: 40 }
@@ -94,8 +131,8 @@ export default function Terminal() {
         background: 'var(--term-bg)',
         color: 'var(--term-fg)',
         fontFamily: 'var(--font-mono)',
-        // single column, spec padding
-        padding: '40px 56px 80px',
+        // §M.1: mobile padding 28px 20px 96px (96px bottom clears #47 tail-strip)
+        padding: isMobile ? '28px 20px 96px' : '40px 56px 80px',
         overflow: 'hidden',
       }}
     >
@@ -128,65 +165,109 @@ export default function Terminal() {
       {/* ── Content (above overlays) ── */}
       <div style={{ position: 'relative', zIndex: 3 }}>
         {/* 1 — CRT chrome header */}
-        <CrtHeader />
+        <CrtHeader isMobile={isMobile} />
 
         {/* 2 — ASCII title */}
         <div style={{ marginTop: 32 }}>
-          <AsciiTitle />
+          <AsciiTitle isMobile={isMobile} />
         </div>
 
         {/* 3 — boot log (streamed) */}
         <div style={{ ...section, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {BOOT_LINES.slice(0, visible).map((b, i) => (
-            <BootLine key={i} status={b.status} text={b.text} />
+          {bootLines.slice(0, visible).map((b, i) => (
+            <BootLine key={i} status={b.status} text={b.text} mobile={isMobile} />
           ))}
         </div>
 
         {/* 4 — help */}
         <div style={section}>
           <Prompt command="help" />
-          <ul
-            style={{
-              listStyle: 'none',
-              margin: '12px 0 0',
-              padding: 0,
-              fontFamily: 'var(--font-mono)',
-              fontSize: 14,
-              lineHeight: 1.8,
-            }}
-          >
-            {HELP_COMMANDS.map(h => (
-              <li
-                key={h.cmd}
-                style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 16 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => jumpToSection(h.cmd)}
-                  aria-label={`Jump to ${h.cmd} section`}
-                  style={{
-                    appearance: 'none',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    margin: 0,
-                    font: 'inherit',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: 'var(--term-fg-bright)',
-                    textShadow: 'var(--term-glow)',
-                    textDecoration: 'underline',
-                    textDecorationStyle: 'dotted',
-                    textUnderlineOffset: 4,
-                    justifySelf: 'start',
-                  }}
+
+          {isMobile ? (
+            // §M.5: single column, 44px-tall rows, > {name}     {desc}, pressed state 120ms
+            <ul
+              style={{
+                listStyle: 'none',
+                margin: '12px 0 0',
+                padding: 0,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 13,
+              }}
+            >
+              {HELP_COMMANDS.map(h => (
+                <li key={h.cmd}>
+                  <button
+                    type="button"
+                    onClick={() => handleHelpTap(h.cmd)}
+                    aria-label={`Jump to ${h.cmd} section`}
+                    style={{
+                      width: '100%',
+                      height: 44,
+                      display: 'flex',
+                      alignItems: 'center',
+                      appearance: 'none',
+                      background: pressedCmd === h.cmd ? 'rgba(244,185,66,0.12)' : 'transparent',
+                      border: 'none',
+                      padding: '0 4px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ color: 'var(--term-fg)' }}>
+                      {'> '}{h.cmd}{'     '}
+                    </span>
+                    <span style={{ color: 'var(--term-fg-dim)' }}>{h.desc}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            // Desktop: grid layout, command button + description
+            <ul
+              style={{
+                listStyle: 'none',
+                margin: '12px 0 0',
+                padding: 0,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 14,
+                lineHeight: 1.8,
+              }}
+            >
+              {HELP_COMMANDS.map(h => (
+                <li
+                  key={h.cmd}
+                  style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 16 }}
                 >
-                  {h.cmd}
-                </button>
-                <span style={{ color: 'var(--term-fg-dim)' }}>{h.desc}</span>
-              </li>
-            ))}
-          </ul>
+                  <button
+                    type="button"
+                    onClick={() => jumpToSection(h.cmd)}
+                    aria-label={`Jump to ${h.cmd} section`}
+                    style={{
+                      appearance: 'none',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      margin: 0,
+                      font: 'inherit',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      color: 'var(--term-fg-bright)',
+                      textShadow: 'var(--term-glow)',
+                      textDecoration: 'underline',
+                      textDecorationStyle: 'dotted',
+                      textUnderlineOffset: 4,
+                      justifySelf: 'start',
+                    }}
+                  >
+                    {h.cmd}
+                  </button>
+                  <span style={{ color: 'var(--term-fg-dim)' }}>{h.desc}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* 5 — cat ./about.txt (collapsible) */}
@@ -224,28 +305,30 @@ export default function Terminal() {
           <CursorPrompt />
         </div>
 
-        {/* 12 — footer (display only) */}
-        <footer
-          style={{
-            marginTop: 40,
-            paddingTop: 18,
-            borderTop: '1px solid rgba(244,185,66,0.14)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 16,
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            letterSpacing: '0.08em',
-            color: 'var(--term-fg-dim)',
-          }}
-        >
-          <span>uptime 2y 134d · F1 help · F2 ls · F10 quit</span>
-          <span>{JX_FOOTER.built}</span>
-          <span>
-            {JX_FOOTER.copyright} · {JX_FOOTER.made}
-          </span>
-        </footer>
+        {/* 12 — footer (display only; hidden on mobile — tail-strip replaces it per §M.8) */}
+        {!isMobile && (
+          <footer
+            style={{
+              marginTop: 40,
+              paddingTop: 18,
+              borderTop: '1px solid rgba(244,185,66,0.14)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 16,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              letterSpacing: '0.08em',
+              color: 'var(--term-fg-dim)',
+            }}
+          >
+            <span>uptime 2y 134d · F1 help · F2 ls · F10 quit</span>
+            <span>{JX_FOOTER.built}</span>
+            <span>
+              {JX_FOOTER.copyright} · {JX_FOOTER.made}
+            </span>
+          </footer>
+        )}
       </div>
 
       {traceOpen && <TraceOverlay onClose={() => setTraceOpen(false)} />}

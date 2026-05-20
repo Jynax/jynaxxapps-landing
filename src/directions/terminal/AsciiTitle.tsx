@@ -6,6 +6,12 @@
 // a11y/SEO, breaks across narrow viewports, and depends on glyph metrics. The
 // VT323 wordmark preserves the drawn-letter terminal feel while staying a real
 // <h1>. The subtitle `// a workshop for digital machines · MMXXVI` matches canonical.
+//
+// Mobile (§M.2): 22px — single line at ≥360px. Desktop: clamp(72px, 13vw, 132px).
+
+interface AsciiTitleProps {
+  isMobile?: boolean
+}
 
 /**
  * Block 2 — ASCII title.
@@ -18,7 +24,7 @@
  * The two `xx` are treated as a graphic device per brand.md "Wordmark"
  * (rendered in --term-fg-bright, tight-tracked).
  */
-export function AsciiTitle() {
+export function AsciiTitle({ isMobile = false }: AsciiTitleProps) {
   return (
     <div>
       <h1
@@ -26,15 +32,14 @@ export function AsciiTitle() {
           margin: 0,
           fontFamily: 'var(--font-vt)',
           fontWeight: 400,
-          // VT323 reads small per its metrics; scale the banner up so it
-          // reads as the big drawn-letter wordmark the spec calls for.
-          fontSize: 'clamp(72px, 13vw, 132px)',
+          fontSize: isMobile ? 22 : 'clamp(72px, 13vw, 132px)',
           lineHeight: 0.92,
           letterSpacing: '0.02em',
           color: 'var(--term-fg)',
           textShadow: 'var(--term-glow-strong)',
           textTransform: 'none',
           userSelect: 'none',
+          whiteSpace: 'nowrap',
         }}
       >
         JYNA
