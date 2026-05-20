@@ -171,7 +171,7 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
           padding:     '5px 14px', cursor: 'pointer',
         }}
       >
-        {copied ? '✓ copied' : 'copy'}
+        {copied ? 'copied' : 'copy'}
       </button>
     </div>
   )
@@ -229,10 +229,10 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
             position: 'absolute', top: 8, right: 10,
             background: 'transparent', border: 'none',
             color: 'var(--term-fg-dim)', cursor: 'pointer',
-            ...mono, fontSize: 14, lineHeight: 1, padding: 4,
+            ...mono, fontSize: 11, lineHeight: 1, padding: 4,
           }}
         >
-          ✕
+          [ X ]
         </button>
 
         {/* Header */}
@@ -263,8 +263,8 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
                 textShadow: 'var(--term-glow)', marginBottom: 10,
               }}>
                 {savedState.lastResult === 'win'
-                  ? '✓ route resolved'
-                  : '✕ no route — connection dropped'}
+                  ? '[ OK ] route resolved'
+                  : '[FAIL] no route — connection dropped'}
               </div>
               <div style={{ ...mono, fontSize: 11, letterSpacing: '0.08em', color: 'var(--term-fg-dim)', marginBottom: 4 }}>
                 streak{' '}
@@ -295,13 +295,10 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
                 style={{
                   ...mono, fontSize: 20, letterSpacing: '0.2em',
                   color: 'var(--term-fg-bright)', textShadow: 'var(--term-glow)',
-                  marginBottom: 6,
+                  marginBottom: 22,
                 }}
               >
                 {puzzle.start.toUpperCase()} → {puzzle.target.toUpperCase()}
-              </div>
-              <div style={{ ...mono, fontSize: 11, letterSpacing: '0.08em', color: 'var(--term-fg-dim)', marginBottom: 22 }}>
-                par {puzzle.par} · budget {puzzle.par + 5}
               </div>
               <button
                 type="button"
@@ -338,8 +335,8 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
               textShadow: 'var(--term-glow)', marginBottom: 12,
             }}>
               {overData.result === 'win'
-                ? '✓ route resolved'
-                : '✕ no route — connection dropped'}
+                ? '[ OK ] route resolved'
+                : '[FAIL] no route — connection dropped'}
             </div>
 
             {/* Win: move count */}
@@ -348,6 +345,22 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
                 {overData.path.length - 1} moves · par {puzzle.par}
               </div>
             )}
+
+            {/* Player's actual path */}
+            <div data-trace-player-path style={{ display: 'inline-block', textAlign: 'left', margin: '0 auto 16px' }}>
+              <div style={{ ...mono, fontSize: 10, letterSpacing: '0.1em', color: 'var(--term-fg-dim)', marginBottom: 6 }}>
+                your route:
+              </div>
+              {overData.path.map((word, i) => (
+                <div key={i} style={{
+                  ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
+                  color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
+                  textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
+                }}>
+                  {word.toUpperCase()}
+                </div>
+              ))}
+            </div>
 
             {/* Loss: reveal a par-length route */}
             {overData.result === 'loss' && overData.route && (

@@ -23,15 +23,17 @@ const BLINK = `@keyframes jx-term-live-blink { 0%,49% { opacity: 1 } 50%,100% { 
 function TailLine({
   activity,
   reduced,
+  paused,
   onOpenPuzzle,
 }: {
   activity:      string
   reduced:       boolean
+  paused?:       boolean
   onOpenPuzzle?: () => void
 }) {
   const shown = useTypeOut(activity)
   const text = activity.slice(0, shown)
-  const activeChar = shown > 0 ? activity[shown - 1] : ''
+  const activeChar = paused ? '' : shown > 0 ? activity[shown - 1] : ''
   const typing = shown < activity.length
 
   return (
@@ -66,7 +68,7 @@ function TailLine({
   )
 }
 
-export function LiveNow({ onOpenPuzzle }: { onOpenPuzzle?: () => void }) {
+export function LiveNow({ onOpenPuzzle, paused }: { onOpenPuzzle?: () => void; paused?: boolean }) {
   const feed = useLiveFeed()
   const reduced = useReducedMotion()
 
@@ -93,6 +95,7 @@ export function LiveNow({ onOpenPuzzle }: { onOpenPuzzle?: () => void }) {
         key={feed.activity}
         activity={feed.activity}
         reduced={reduced}
+        paused={paused}
         onOpenPuzzle={onOpenPuzzle}
       />
     </div>

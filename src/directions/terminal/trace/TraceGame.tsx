@@ -31,6 +31,7 @@ export function TraceGame({
   const [entry,    setEntry]    = useState('')
   const [lastChar, setLastChar] = useState('')
   const [error,    setError]    = useState<string | null>(null)
+  const [moveAnnounce, setMoveAnnounce] = useState('')
 
   // Refs keep event-listener closures fresh without re-registering on every render.
   // Updated in useLayoutEffect (not during render) per the react-hooks/refs rule.
@@ -53,17 +54,21 @@ export function TraceGame({
 
       if (e.key === 'Enter') {
         e.preventDefault(); e.stopPropagation()
-        const { game: next, error: err } = submitWord(gameRef.current, entryRef.current, WORD_SET)
+        const word = entryRef.current
+        const { game: next, error: err } = submitWord(gameRef.current, word, WORD_SET)
         if (err) {
           setError(ERR[err])
           if (errorTimer.current) clearTimeout(errorTimer.current)
-          errorTimer.current = setTimeout(() => setError(null), reducedRef.current ? 0 : 1200)
+          errorTimer.current = setTimeout(() => setError(null), 1200)
           return
         }
         setGame(next)
         setEntry('')
         setLastChar('')
         setError(null)
+        if (next.status === 'playing') {
+          setMoveAnnounce(`${word.toUpperCase()} accepted — ${next.movesLeft} moves left`)
+        }
         if (next.status !== 'playing') {
           onEndRef.current(next.status === 'won' ? 'win' : 'loss', next.path)
         }
@@ -77,7 +82,7 @@ export function TraceGame({
         return
       }
 
-      if (/^[a-zA-Z]$/.test(e.key) && entryRef.current.length < 5) {
+      if (/^[a-zA-Z]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && entryRef.current.length < 5) {
         e.preventDefault()
         const ch = e.key.toLowerCase()
         setEntry(prev => prev + ch)
@@ -93,8 +98,14 @@ export function TraceGame({
   const mono = { fontFamily: 'var(--font-mono)' } as const
 
   return (
-    <div data-trace-game style={{ ...mono, fontSize: 14 }}>
+    <div data-trace-game style={{ ...mono, fontSize: 14, position: 'relative' }}>
       <style>{BLINK}</style>
+      <div aria-live="polite" aria-atomic="true" style={{
+        position: 'absolute', width: 1, height: 1, overflow: 'hidden',
+        clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap',
+      }}>
+        {moveAnnounce}
+      </div>
 
       {/* HUD */}
       <div style={{
@@ -152,7 +163,7 @@ export function TraceGame({
           fontSize: 12, letterSpacing: '0.04em',
           color: 'var(--term-danger)', marginBottom: 8,
         }}>
-          ✕ {error}
+          {error}
         </div>
       )}
 
