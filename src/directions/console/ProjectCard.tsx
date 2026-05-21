@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Project } from '../../data/jxData'
 import { JX_STATUS } from '../../data/jxData'
 import { ProjectArt } from '../ProjectArt'
@@ -19,6 +19,24 @@ import { CONSOLE_FOCUS_STYLE, DossierMeta } from './shared'
 const mono = { fontFamily: 'var(--font-mono)' }
 const display = { fontFamily: 'var(--font-display)', fontWeight: 700 }
 
+function useMediaQuery(query: string, defaultValue = false) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return defaultValue
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    const update = () => setMatches(media.matches)
+
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [query])
+
+  return matches
+}
+
 interface ProjectCardProps {
   project: Project
   /** Resolved hex accent for this card (from CARD_ACCENTS rotation). */
@@ -29,6 +47,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: ProjectCardProps) {
   const [hover, setHover] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const status = JX_STATUS[p.status]
   const hasHref = p.href !== '#'
   const stackStr = p.stack.length > 0 ? p.stack.join(' · ') : '—'
@@ -50,6 +69,7 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
         overflow: 'hidden',
         transition: 'border-color .15s, box-shadow .15s',
         boxShadow: isOpen ? `0 0 0 1px ${c}, 0 8px 32px ${c}22` : 'none',
+        gridColumn: isOpen && !isDesktop ? '1 / -1' : undefined,
       }}
     >
       <style>{CONSOLE_FOCUS_STYLE}</style>
@@ -77,7 +97,7 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
       {/* Screen — vector illustration */}
       <div
         style={{
-          height: 180,
+          height: isDesktop ? 180 : 96,
           background: `linear-gradient(135deg, ${CON.bgRaise} 0%, ${CON.bg} 100%)`,
           borderBottom: `1px solid ${CON.line}`,
           position: 'relative',
@@ -93,19 +113,36 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '8px 22px',
+          padding: isDesktop ? '8px 22px' : '6px 10px',
           background: `${CON.bgRaise}80`,
           borderBottom: `1px solid ${CON.line}`,
           ...mono,
-          fontSize: 10,
+          fontSize: isDesktop ? 10 : 8.5,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
+          gap: isDesktop ? undefined : 8,
         }}
       >
-        <span style={{ color: CON.mid }}>
+        <span
+          style={{
+            color: CON.mid,
+            minWidth: isDesktop ? undefined : 0,
+            overflow: isDesktop ? undefined : 'hidden',
+            textOverflow: isDesktop ? undefined : 'ellipsis',
+            whiteSpace: isDesktop ? undefined : 'nowrap',
+          }}
+        >
           <span style={{ color: c }}>{p.chapter}</span> &nbsp;/&nbsp; {p.id}.app
         </span>
-        <span style={{ color: status.color, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span
+          style={{
+            color: status.color,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            flexShrink: isDesktop ? undefined : 0,
+          }}
+        >
           <span
             style={{
               width: 6,
@@ -120,36 +157,60 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
       </div>
 
       {/* Body */}
-      <div style={{ padding: '20px 22px 22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          padding: isDesktop ? '20px 22px 22px' : '10px 10px 12px',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: isDesktop ? undefined : 0,
+        }}
+      >
         <h3
           style={{
             ...display,
-            fontSize: 30,
+            fontSize: isDesktop ? 30 : 16,
             fontWeight: 600,
             margin: 0,
             lineHeight: 1.05,
             color: CON.ink,
             letterSpacing: '-0.02em',
+            overflow: isDesktop ? undefined : 'hidden',
+            textOverflow: isDesktop ? undefined : 'ellipsis',
+            whiteSpace: isDesktop ? undefined : 'nowrap',
           }}
         >
           {p.name}
         </h3>
-        <div style={{ ...mono, fontSize: 12, color: c, marginTop: 6, letterSpacing: '0.04em' }}>
-          {p.tag}
-        </div>
-        <p
+        <div
           style={{
-            fontSize: 14,
-            lineHeight: 1.55,
-            color: CON.mid,
-            margin: '14px 0 16px',
-            textWrap: 'pretty',
-            flex: 1,
-            fontFamily: 'var(--font-sans)',
+            ...mono,
+            fontSize: isDesktop ? 12 : 9.5,
+            color: c,
+            marginTop: 6,
+            letterSpacing: '0.04em',
+            overflow: isDesktop ? undefined : 'hidden',
+            textOverflow: isDesktop ? undefined : 'ellipsis',
+            whiteSpace: isDesktop ? undefined : 'nowrap',
           }}
         >
-          {p.blurb}
-        </p>
+          {p.tag}
+        </div>
+        {isDesktop && (
+          <p
+            style={{
+              fontSize: 14,
+              lineHeight: 1.55,
+              color: CON.mid,
+              margin: '14px 0 16px',
+              textWrap: 'pretty',
+              flex: 1,
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
+            {p.blurb}
+          </p>
+        )}
 
         {/* Dossier — canonical .35s max-height open animation (audit #16:
             the shipped {isOpen && …} instant mount had dropped the canonical
@@ -160,7 +221,7 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
         <div
           data-card-dossier-anim
           style={{
-            maxHeight: isOpen ? 400 : 0,
+            maxHeight: isOpen ? isDesktop ? 400 : 'none' : 0,
             overflow: 'hidden',
             transition: 'max-height .35s ease',
           }}
@@ -186,18 +247,43 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
               >
                 ◆ dossier // {p.id}
               </div>
+              {!isDesktop && (
+                <p
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.55,
+                    color: CON.mid,
+                    margin: '0 0 14px',
+                    textWrap: 'pretty',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {p.blurb}
+                </p>
+              )}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gridTemplateColumns: isDesktop ? 'repeat(2, 1fr)' : '1fr',
                   gap: 14,
                   fontSize: 12,
                 }}
               >
-                <DossierMeta k="started" v={p.started} />
-                <DossierMeta k="touched" v={p.touched} />
-                <DossierMeta k="address" v={p.slug} />
-                <DossierMeta k="stack" v={stackStr} />
+                {isDesktop ? (
+                  <>
+                    <DossierMeta k="started" v={p.started} />
+                    <DossierMeta k="touched" v={p.touched} />
+                    <DossierMeta k="address" v={p.slug} />
+                    <DossierMeta k="stack" v={stackStr} />
+                  </>
+                ) : (
+                  <>
+                    <DossierMeta k="started" v={p.started} />
+                    <DossierMeta k="touched" v={p.touched} />
+                    <DossierMeta k="stack" v={stackStr} />
+                    <DossierMeta k="address" v={p.slug} />
+                  </>
+                )}
               </div>
               {hasHref && (
                 <a
@@ -206,17 +292,22 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
                   rel="noopener noreferrer"
                   aria-label={`Open ${p.name}`}
                   style={{
-                    display: 'block',
+                    display: isDesktop ? 'block' : 'flex',
+                    alignItems: isDesktop ? undefined : 'center',
+                    justifyContent: isDesktop ? undefined : 'center',
                     marginTop: 14,
                     ...mono,
                     fontSize: 11,
                     color: CON.bg,
                     background: c,
-                    padding: '8px 20px',
+                    padding: isDesktop ? '8px 20px' : '0 20px',
                     textAlign: 'center',
                     letterSpacing: '0.14em',
                     textTransform: 'uppercase',
                     textDecoration: 'none',
+                    width: isDesktop ? undefined : '100%',
+                    height: isDesktop ? undefined : 48,
+                    boxSizing: isDesktop ? undefined : 'border-box',
                     clipPath:
                       'polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%)',
                   }}
@@ -236,34 +327,45 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
             alignItems: 'baseline',
             paddingTop: 14,
             borderTop: `1px dashed ${CON.line}`,
+            gap: isDesktop ? undefined : 8,
+            minWidth: isDesktop ? undefined : 0,
           }}
         >
           <div
             style={{
               display: 'flex',
-              gap: 14,
+              gap: isDesktop ? 14 : 8,
               ...mono,
-              fontSize: 11,
+              fontSize: isDesktop ? 11 : 9,
               color: CON.dim,
               letterSpacing: '0.04em',
+              minWidth: isDesktop ? undefined : 0,
+              overflow: isDesktop ? undefined : 'hidden',
             }}
           >
-            <span>
+            <span
+              style={{
+                overflow: isDesktop ? undefined : 'hidden',
+                textOverflow: isDesktop ? undefined : 'ellipsis',
+                whiteSpace: isDesktop ? undefined : 'nowrap',
+              }}
+            >
               <span style={{ color: CON.mid }}>STK</span> {stackTight}
             </span>
-            <span>
+            <span style={{ flexShrink: isDesktop ? undefined : 0 }}>
               <span style={{ color: CON.mid }}>EST</span> {p.started}
             </span>
           </div>
           <span
             style={{
               ...mono,
-              fontSize: 11,
+              fontSize: isDesktop ? 11 : 9,
               color: c,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
               borderBottom: `1px solid ${c}`,
               paddingBottom: 1,
+              flexShrink: isDesktop ? undefined : 0,
             }}
           >
             {isOpen ? '▴ close' : 'open →'}
