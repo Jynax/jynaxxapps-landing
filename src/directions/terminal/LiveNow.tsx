@@ -1,6 +1,7 @@
 import { useLiveFeed } from '../parts/useLiveFeed'
 import { useTypeOut } from '../parts/useTypeOut'
 import { useReducedMotion } from '../parts/useReducedMotion'
+import { useIsMobile } from '../parts/useIsMobile'
 import { Prompt } from '../parts/Prompt'
 import { PhosphorKeyboard } from './PhosphorKeyboard'
 
@@ -25,11 +26,13 @@ function TailLine({
   reduced,
   paused,
   onOpenPuzzle,
+  isMobile,
 }: {
   activity:      string
   reduced:       boolean
   paused?:       boolean
   onOpenPuzzle?: () => void
+  isMobile?:     boolean
 }) {
   const shown = useTypeOut(activity)
   const text = activity.slice(0, shown)
@@ -38,32 +41,42 @@ function TailLine({
 
   return (
     <>
-      <p
-        style={{
-          margin: '12px 0 0',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 14,
-          lineHeight: 1.7,
-          color: 'var(--term-fg)',
-          textShadow: 'var(--term-glow)',
-          maxWidth: '72ch',
-          whiteSpace: 'pre-wrap',
-        }}
-      >
-        {text}
-        <span
+      {/* On mobile, the typed text + cursor are hidden — the tail-strip
+          (rendered by PhosphorKeyboard below) shows the live feed instead.
+          The type-out still runs so the feed text stays current. */}
+      {!isMobile && (
+        <p
           style={{
-            color: 'var(--term-fg-bright)',
-            textShadow: 'var(--term-glow-strong)',
-            // Solid while typing; blink only when idle at end of line.
-            animation:
-              reduced || typing ? 'none' : 'jx-term-live-blink 530ms steps(1, end) infinite',
+            margin: '12px 0 0',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 14,
+            lineHeight: 1.7,
+            color: 'var(--term-fg)',
+            textShadow: 'var(--term-glow)',
+            maxWidth: '72ch',
+            whiteSpace: 'pre-wrap',
           }}
         >
-          █
-        </span>
-      </p>
-      <PhosphorKeyboard activeChar={activeChar} onOpenPuzzle={onOpenPuzzle} />
+          {text}
+          <span
+            style={{
+              color: 'var(--term-fg-bright)',
+              textShadow: 'var(--term-glow-strong)',
+              // Solid while typing; blink only when idle at end of line.
+              animation:
+                reduced || typing ? 'none' : 'jx-term-live-blink 530ms steps(1, end) infinite',
+            }}
+          >
+            █
+          </span>
+        </p>
+      )}
+      <PhosphorKeyboard
+        activeChar={activeChar}
+        onOpenPuzzle={onOpenPuzzle}
+        isMobile={isMobile}
+        activity={activity}
+      />
     </>
   )
 }
@@ -71,32 +84,38 @@ function TailLine({
 export function LiveNow({ onOpenPuzzle, paused }: { onOpenPuzzle?: () => void; paused?: boolean }) {
   const feed = useLiveFeed()
   const reduced = useReducedMotion()
+  const isMobile = useIsMobile()
 
   return (
     <div data-term-live>
       <style>{BLINK}</style>
       <Prompt command="tail -f /var/log/jynaxx/now" />
-      <div
-        style={{
-          margin: '8px 0 0',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 12,
-          letterSpacing: '0.04em',
-          color: 'var(--term-fg-dim)',
-        }}
-      >
-        ── tailing · {feed.project ? feed.project.name : 'workshop'} · {feed.since}
-        {' · '}
-        <span style={{ color: 'var(--term-fg)' }}>
-          {feed.index + 1}/{feed.total}
-        </span>
-      </div>
+      {/* Meta line: project tailing info. Shown on desktop only — on mobile
+          the tail-strip footer carries the live feed display. */}
+      {!isMobile && (
+        <div
+          style={{
+            margin: '8px 0 0',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 12,
+            letterSpacing: '0.04em',
+            color: 'var(--term-fg-dim)',
+          }}
+        >
+          ── tailing · {feed.project ? feed.project.name : 'workshop'} · {feed.since}
+          {' · '}
+          <span style={{ color: 'var(--term-fg)' }}>
+            {feed.index + 1}/{feed.total}
+          </span>
+        </div>
+      )}
       <TailLine
         key={feed.activity}
         activity={feed.activity}
         reduced={reduced}
         paused={paused}
         onOpenPuzzle={onOpenPuzzle}
+        isMobile={isMobile}
       />
     </div>
   )
