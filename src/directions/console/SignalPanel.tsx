@@ -134,7 +134,7 @@ export function SignalPanel() {
   const tag = `${feed.since.toUpperCase()}  ·  CH 01  ·  ${channel}  ·  ${feed.watchers} WATCHING`
 
   return (
-    <div style={{ padding: '0 48px 64px' }}>
+    <div style={{ padding: isDesktop ? '0 48px 64px' : '0 16px 40px' }}>
       <section
         aria-label="Signal · Live Feed"
         style={{
