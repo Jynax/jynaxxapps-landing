@@ -22,6 +22,10 @@ import { CON } from './accents'
 // rotating set, so the canonical SIGNAL META 4th line `rotate 7s` is now
 // truthful and is rendered as such when the set has >1 entry (and `single`
 // when only one is live — staying honest per feedback_data_integrity_hard_line).
+//
+// Task #55: mobile branch (<1024px) stacks the three inner columns vertically
+// and turns the STATE LED column into a horizontal row. Desktop rendering is
+// unchanged. useMediaQuery mirrors the pattern in terminal/ProjectListing.tsx.
 
 const mono = { fontFamily: 'var(--font-mono)' }
 
@@ -42,6 +46,23 @@ function buildWavePath(phase: number): string {
     points.push(`${x},${y.toFixed(2)}`)
   }
   return `M ${points.join(' L ')}`
+}
+
+function useMediaQuery(query: string, defaultValue = false) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return defaultValue
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    const update = () => setMatches(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [query])
+
+  return matches
 }
 
 function StatusLed({
@@ -114,6 +135,7 @@ export function SignalPanel() {
   const reduced = useReducedMotion()
   const feed = useLiveFeed()
   const [phase, setPhase] = useState(0)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   useEffect(() => {
     if (reduced) return
@@ -142,7 +164,8 @@ export function SignalPanel() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '10px 18px',
+            flexWrap: isDesktop ? 'nowrap' : 'wrap',
+            padding: isDesktop ? '10px 18px' : '10px 14px',
             borderBottom: `1px solid ${CON.line}`,
             ...mono,
             fontSize: 10,
@@ -155,12 +178,12 @@ export function SignalPanel() {
           <span style={{ color: CON.dim }}>{tag}</span>
         </div>
 
-        <div style={{ padding: 28 }}>
+        <div style={{ padding: isDesktop ? 28 : 16 }}>
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '90px 1fr 200px',
-              gap: 28,
+              gridTemplateColumns: isDesktop ? '90px 1fr 200px' : '1fr',
+              gap: isDesktop ? 28 : 16,
               alignItems: 'stretch',
             }}
           >
@@ -188,10 +211,20 @@ export function SignalPanel() {
               >
                 state
               </div>
-              <StatusLed color={CON.sage} label="LIVE" pulse reduced={reduced} />
-              <StatusLed color={CON.amber} label="ACTIVE" reduced={reduced} />
-              <StatusLed color={CON.dim} label="RX" reduced={reduced} />
-              <StatusLed color={CON.cyan} label="SYNC" reduced={reduced} />
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: isDesktop ? 'column' : 'row',
+                  flexWrap: 'wrap',
+                  gap: isDesktop ? 10 : 16,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <StatusLed color={CON.sage} label="LIVE" pulse reduced={reduced} />
+                <StatusLed color={CON.amber} label="ACTIVE" reduced={reduced} />
+                <StatusLed color={CON.dim} label="RX" reduced={reduced} />
+                <StatusLed color={CON.cyan} label="SYNC" reduced={reduced} />
+              </div>
             </div>
 
             {/* CRT readout + oscilloscope */}
@@ -222,7 +255,7 @@ export function SignalPanel() {
                 style={{
                   fontFamily: 'var(--font-display)',
                   fontWeight: 600,
-                  fontSize: 24,
+                  fontSize: isDesktop ? 24 : 20,
                   lineHeight: 1.3,
                   color: CON.ink,
                   textWrap: 'pretty',
