@@ -14,6 +14,10 @@
 // the active char so digits/punctuation match too. Audit MISS #1: the shipped
 // keyboard had only 3 letter rows, so digits/punctuation in the live activity
 // (e.g. "2.1", "7s") lit no key.
+
+import { useEffect, useRef, useState } from 'react'
+import { useReducedMotion } from '../parts/useReducedMotion'
+
 const ROWS = [
   { keys: '1234567890-=', offset: 0 },
   { keys: 'QWERTYUIOP', offset: 10 },
@@ -63,13 +67,191 @@ function Key({ label, lit, wide }: { label: string; lit: boolean; wide?: boolean
   )
 }
 
+// ── Mobile tail-strip (§M.8) ─────────────────────────────────────────────────
+//
+// CSS keyframes injected once per mount. Marquee animation scrolls the text
+// container from 0 to -(scrollWidth - clientWidth) so text enters from right
+// and exits left, then snaps back. The duration scales with text length so
+// very short and very long strings scroll at a consistent reading pace.
+const BLINK_KF = `@keyframes jx-tail-blink { 0%,49%{opacity:1}50%,100%{opacity:0} }`
+const MARQUEE_KF = `@keyframes jx-tail-marquee { 0%{transform:translateX(0)} 100%{transform:translateX(var(--jx-marquee-dist))} }`
+
+function TailStrip({
+  activity,
+  onOpenPuzzle,
+}: {
+  activity: string
+  onOpenPuzzle?: () => void
+}) {
+  const reduced = useReducedMotion()
+  const textRef = useRef<HTMLSpanElement>(null)
+  const [overflow, setOverflow] = useState(false)
+  const [marqueeStyle, setMarqueeStyle] = useState<React.CSSProperties>({})
+
+  // Measure overflow after render and on activity change
+  useEffect(() => {
+    const el = textRef.current
+    if (!el) return
+    // Check if text overflows the container width
+    const doesOverflow = el.scrollWidth > el.clientWidth + 1
+    setOverflow(doesOverflow)
+    if (doesOverflow && !reduced) {
+      const dist = -(el.scrollWidth - el.clientWidth)
+      const durationSec = Math.max(4, Math.abs(dist) / 30) // ~30px/s
+      el.style.setProperty('--jx-marquee-dist', `${dist}px`)
+      setMarqueeStyle({
+        animation: `jx-tail-marquee ${durationSec.toFixed(1)}s linear infinite alternate`,
+        willChange: 'transform',
+      })
+    } else {
+      setMarqueeStyle({})
+    }
+  }, [activity, reduced])
+
+  return (
+    <div
+      data-tail-strip
+      style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 56,
+        background: 'linear-gradient(180deg, rgba(10,8,5,0) 0%, var(--term-bg) 16px)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        paddingLeft: 12,
+        paddingRight: 12,
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+        zIndex: 10,
+        fontFamily: 'var(--font-mono)',
+      }}
+    >
+      <style>{BLINK_KF}{MARQUEE_KF}</style>
+
+      {/* tail -f label */}
+      <span
+        style={{
+          color: 'var(--term-fg-dim)',
+          fontSize: 10.5,
+          letterSpacing: '0.06em',
+          flexShrink: 0,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        tail -f
+      </span>
+
+      {/* Live activity text — marquee if overflow, static otherwise */}
+      <span
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <span
+          ref={textRef}
+          style={{
+            color: 'var(--term-fg)',
+            fontSize: 11.5,
+            textShadow: 'var(--term-glow)',
+            whiteSpace: 'nowrap',
+            display: 'inline-block',
+            // marquee only if text actually overflows AND motion allowed
+            ...(overflow && !reduced ? marqueeStyle : {}),
+          }}
+        >
+          {activity}
+        </span>
+        {/* blinking cursor — stays per spec §M.8; decorative, hidden from AT */}
+        <span
+          aria-hidden="true"
+          style={{
+            color: 'var(--term-fg-bright)',
+            textShadow: 'var(--term-glow-strong)',
+            fontSize: 11.5,
+            animation: reduced ? 'none' : 'jx-tail-blink 530ms steps(1,end) infinite',
+            marginLeft: 2,
+          }}
+        >
+          █
+        </span>
+      </span>
+
+      {/* TRACE ? button — same data-trace-open attribute as desktop so #48 wiring picks it up */}
+      {onOpenPuzzle && (
+        <button
+          type="button"
+          aria-label="Open daily word puzzle"
+          data-trace-open
+          onClick={onOpenPuzzle}
+          style={{
+            flexShrink: 0,
+            width: 44,
+            height: 44,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 14,
+            lineHeight: 1,
+            color: 'var(--term-fg-dim)',
+            background: 'transparent',
+            border: '1px solid rgba(244,185,66,0.22)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            userSelect: 'none',
+            transition: 'color 200ms, border-color 200ms, box-shadow 200ms',
+            touchAction: 'manipulation',
+          }}
+          onPointerEnter={e => {
+            const b = e.currentTarget
+            b.style.color = 'var(--term-fg-bright)'
+            b.style.borderColor = 'var(--term-fg-bright)'
+            b.style.boxShadow = 'var(--term-glow)'
+          }}
+          onPointerLeave={e => {
+            const b = e.currentTarget
+            b.style.color = 'var(--term-fg-dim)'
+            b.style.borderColor = 'rgba(244,185,66,0.22)'
+            b.style.boxShadow = 'none'
+          }}
+        >
+          ?
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Desktop keyboard ──────────────────────────────────────────────────────────
+
 export function PhosphorKeyboard({
   activeChar,
   onOpenPuzzle,
+  isMobile,
+  activity,
 }: {
   activeChar:     string
   onOpenPuzzle?: () => void
+  /** Pass true on mobile — renders the §M.8 tail-strip instead of full keyboard */
+  isMobile?:     boolean
+  /** Current live-feed activity text (required on mobile for the tail-strip) */
+  activity?:     string
 }) {
+  // Mobile: render the sticky tail-strip (§M.8). Phosphor afterglow is off on
+  // mobile — no key presses → nothing to glow. The full keyboard is hidden.
+  if (isMobile) {
+    return (
+      <TailStrip
+        activity={activity ?? ''}
+        onOpenPuzzle={onOpenPuzzle}
+      />
+    )
+  }
+
   const active = activeChar ? normalize(activeChar) : ''
 
   return (
