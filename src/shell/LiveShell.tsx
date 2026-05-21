@@ -287,109 +287,160 @@ export function LiveShell() {
             </span>
           )}
 
-          {featuredDirs.map((dir) => {
-            const isActive = direction === dir.id
-            const isHovered = hovered === dir.id
-            const keyNum = DIRECTIONS.findIndex(d => d.id === dir.id) + 1
-
-            if (isMobile) {
-              // 44×44px invisible hit area; visual dot is inner <span>
-              return (
-                <button
-                  key={dir.id}
-                  data-toggle-direction={dir.id}
-                  onClick={() => setDirection(dir.id)}
-                  title={`${dir.full} (press ${keyNum})`}
-                  aria-label={`Switch to ${dir.full}`}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    flexShrink: 0,
-                  }}
-                >
-                  <span
+          {isMobile ? (
+            // Mobile: compact dot group — visible dots are 10/12px; 44×44 hit area is
+            // achieved via padding (17px each side) so bounding box = 44×44 per WCAG 2.5.5.
+            // Adjacent buttons overlap their padding zones via negative left margin
+            // (−17px on 2nd and 3rd dots), keeping dot centers ≥ 8px apart while the
+            // group itself contributes ~54px of layout width instead of 3×44px = 132px.
+            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              {featuredDirs.map((dir, idx) => {
+                const isActive = direction === dir.id
+                const keyNum = DIRECTIONS.findIndex(d => d.id === dir.id) + 1
+                return (
+                  <button
+                    key={dir.id}
+                    data-toggle-direction={dir.id}
+                    onClick={() => setDirection(dir.id)}
+                    title={`${dir.full} (press ${keyNum})`}
+                    aria-label={`Switch to ${dir.full}`}
                     style={{
-                      width: isActive ? 12 : 10,
-                      height: isActive ? 12 : 10,
-                      borderRadius: 99,
-                      background: isActive ? dir.accent : 'transparent',
-                      border: `1px solid ${isActive ? dir.accent : 'rgba(255,255,255,0.28)'}`,
-                      boxShadow: isActive ? `0 0 10px ${dir.accent}AA` : 'none',
-                      display: 'block',
+                      // Padding extends the tap target to 44×44 around the small visual dot.
+                      // No explicit width/height — element size = dot + padding = 44×44.
+                      padding: 17,
+                      // Overlap padding zones with neighbours so pill stays compact.
+                      // From the 2nd dot onward, collapse the gap between this button's
+                      // left padding zone and the previous button's right padding zone.
+                      // First dot: no negative margin — it sits flush with the wrapper start.
+                      marginLeft: idx === 0 ? 0 : -17,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
                       flexShrink: 0,
-                      transition: 'all .15s ease',
+                      position: 'relative',
+                      zIndex: isActive ? 1 : 0,
                     }}
-                  />
-                </button>
-              )
-            }
+                  >
+                    <span
+                      style={{
+                        width: isActive ? 12 : 10,
+                        height: isActive ? 12 : 10,
+                        borderRadius: 99,
+                        background: isActive ? dir.accent : 'transparent',
+                        border: `1px solid ${isActive ? dir.accent : 'rgba(255,255,255,0.28)'}`,
+                        boxShadow: isActive ? `0 0 10px ${dir.accent}AA` : 'none',
+                        display: 'block',
+                        flexShrink: 0,
+                        transition: 'all .15s ease',
+                      }}
+                    />
+                  </button>
+                )
+              })}
 
-            // Desktop dot button
-            return (
+              {/* Separator */}
+              <span
+                style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', margin: '0 4px', flexShrink: 0 }}
+              />
+
+              {/* Copy-link: same treatment — 16×16 visible icon, 44×44 hit area via padding */}
               <button
-                key={dir.id}
-                data-toggle-direction={dir.id}
-                onClick={() => setDirection(dir.id)}
-                onMouseEnter={() => setHovered(dir.id)}
-                onMouseLeave={() => setHovered(null)}
-                title={`${dir.full} (press ${keyNum})`}
-                aria-label={`Switch to ${dir.full}`}
+                data-copy-link
+                onClick={handleCopyLink}
+                title="Copy shareable link to this view"
+                aria-label="Copy link"
                 style={{
-                  width: isActive ? 10 : isHovered ? 9 : 7,
-                  height: isActive ? 10 : isHovered ? 9 : 7,
-                  borderRadius: 99,
-                  background: isActive
-                    ? dir.accent
-                    : isHovered
-                      ? `${dir.accent}55`
-                      : 'transparent',
-                  border: `1px solid ${
-                    isActive ? dir.accent : isHovered ? `${dir.accent}AA` : 'rgba(255,255,255,0.28)'
-                  }`,
-                  boxShadow: isActive ? `0 0 10px ${dir.accent}AA` : 'none',
+                  background: 'transparent',
+                  border: 'none',
+                  color: copyLabel ? currentDir.accent : '#7B8A95',
                   cursor: 'pointer',
-                  padding: 0,
-                  transition: 'all .15s ease',
+                  padding: 14,
+                  marginRight: -14,
+                  minWidth: 44,
+                  minHeight: 44,
+                  fontSize: 13,
+                  lineHeight: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color .15s ease',
                   flexShrink: 0,
                 }}
+              >
+                {copyLabel ? '✓' : '⎘'}
+              </button>
+            </div>
+          ) : (
+            <>
+              {featuredDirs.map((dir) => {
+                const isActive = direction === dir.id
+                const isHovered = hovered === dir.id
+                const keyNum = DIRECTIONS.findIndex(d => d.id === dir.id) + 1
+
+                // Desktop dot button
+                return (
+                  <button
+                    key={dir.id}
+                    data-toggle-direction={dir.id}
+                    onClick={() => setDirection(dir.id)}
+                    onMouseEnter={() => setHovered(dir.id)}
+                    onMouseLeave={() => setHovered(null)}
+                    title={`${dir.full} (press ${keyNum})`}
+                    aria-label={`Switch to ${dir.full}`}
+                    style={{
+                      width: isActive ? 10 : isHovered ? 9 : 7,
+                      height: isActive ? 10 : isHovered ? 9 : 7,
+                      borderRadius: 99,
+                      background: isActive
+                        ? dir.accent
+                        : isHovered
+                          ? `${dir.accent}55`
+                          : 'transparent',
+                      border: `1px solid ${
+                        isActive ? dir.accent : isHovered ? `${dir.accent}AA` : 'rgba(255,255,255,0.28)'
+                      }`,
+                      boxShadow: isActive ? `0 0 10px ${dir.accent}AA` : 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      transition: 'all .15s ease',
+                      flexShrink: 0,
+                    }}
+                  />
+                )
+              })}
+
+              <span
+                style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', margin: '0 4px' }}
               />
-            )
-          })}
 
-          <span
-            style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', margin: '0 4px' }}
-          />
-
-          <button
-            data-copy-link
-            onClick={handleCopyLink}
-            title="Copy shareable link to this view"
-            aria-label="Copy link"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: copyLabel ? currentDir.accent : '#7B8A95',
-              cursor: 'pointer',
-              padding: 0,
-              fontSize: 13,
-              lineHeight: 1,
-              width: isMobile ? 44 : 16,
-              height: isMobile ? 44 : 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'color .15s ease',
-            }}
-          >
-            {copyLabel ? '✓' : '⎘'}
-          </button>
+              <button
+                data-copy-link
+                onClick={handleCopyLink}
+                title="Copy shareable link to this view"
+                aria-label="Copy link"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: copyLabel ? currentDir.accent : '#7B8A95',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: 13,
+                  lineHeight: 1,
+                  width: 16,
+                  height: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color .15s ease',
+                }}
+              >
+                {copyLabel ? '✓' : '⎘'}
+              </button>
+            </>
+          )}
         </div>
       )}
 
