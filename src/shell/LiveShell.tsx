@@ -60,6 +60,14 @@ export function LiveShell() {
 
   const currentDir = DIRECTIONS.find(d => d.id === direction)!
 
+  // Mobile mode-pill bottom offset. On Terminal mobile the 56px tail-strip
+  // (#47, fixed bottom:0) occupies the bottom-right corner — lift the pill
+  // clear of it so the TRACE `?` button stays tappable (#60). Other
+  // directions keep the mobile-foundations §4 default.
+  const pillBottomMobile = direction === 'terminal'
+    ? 'calc(56px + max(16px, env(safe-area-inset-bottom)) + 12px)'
+    : 'max(12px, env(safe-area-inset-bottom) + 8px)'
+
   // On first mount: if arrived via hash, persist that direction to localStorage
   useEffect(() => {
     if (cameFromHash) {
@@ -212,7 +220,7 @@ export function LiveShell() {
           aria-label="Expand direction switcher"
           style={{
             position: 'fixed',
-            bottom: 'max(12px, env(safe-area-inset-bottom) + 8px)',
+            bottom: pillBottomMobile,
             right: 12,
             zIndex: 10000,
             width: 36,
@@ -250,7 +258,7 @@ export function LiveShell() {
           onMouseLeave={() => { if (!isMobile) { setExpanded(false); setHovered(null) } }}
           style={{
             position: 'fixed',
-            bottom: isMobile ? 'max(12px, env(safe-area-inset-bottom) + 8px)' : 16,
+            bottom: isMobile ? pillBottomMobile : 16,
             right: isMobile ? 12 : 16,
             zIndex: 10000,
             display: 'flex',

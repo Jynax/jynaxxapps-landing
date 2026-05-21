@@ -23,12 +23,10 @@ async function openMobileSheet(page: import('@playwright/test').Page) {
   await page.setViewportSize(MOBILE_VIEWPORT);
   await seedTrace(page);
   await page.goto('/#terminal');
-  // The tail-strip `?` is the entry point. The floating mode-pill currently
-  // overlaps it on mobile (a separate, pre-existing #47/#43 layout collision,
-  // flagged for follow-up), so a coordinate-based click is intercepted by the
-  // pill. Dispatch the click directly on the button — these tests cover the
-  // bottom sheet itself, not the entry-point collision.
-  await page.locator('[data-tail-strip] [data-trace-open]').dispatchEvent('click');
+  // Real tap on the tail-strip `?`. Since #60 lifted the mode-pill clear of
+  // the tail-strip on Terminal mobile, a coordinate-based click is no longer
+  // intercepted — so this doubles as the regression guard for the collision.
+  await page.locator('[data-tail-strip] [data-trace-open]').click();
   await expect(page.locator('[data-trace-sheet]')).toBeVisible();
 }
 
