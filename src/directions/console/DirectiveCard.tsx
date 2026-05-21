@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { CON } from './accents'
 
 // Section 6 — Directive (house-rule) card.
@@ -7,6 +8,24 @@ import { CON } from './accents'
 const mono = { fontFamily: 'var(--font-mono)' }
 const display = { fontFamily: 'var(--font-display)', fontWeight: 700 }
 
+function useMediaQuery(query: string, defaultValue = false) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return defaultValue
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    const update = () => setMatches(media.matches)
+
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [query])
+
+  return matches
+}
+
 interface DirectiveCardProps {
   text: string
   index: number
@@ -15,6 +34,8 @@ interface DirectiveCardProps {
 }
 
 export function DirectiveCard({ text, index, accent: c }: DirectiveCardProps) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+
   return (
     <div
       data-directive-card
@@ -22,7 +43,7 @@ export function DirectiveCard({ text, index, accent: c }: DirectiveCardProps) {
         background: `${CON.bgAlt}99`,
         border: `1px solid ${CON.line}`,
         padding: '20px 18px',
-        minHeight: 180,
+        minHeight: isDesktop ? 180 : 100,
         position: 'relative',
       }}
     >
@@ -57,7 +78,7 @@ export function DirectiveCard({ text, index, accent: c }: DirectiveCardProps) {
           position: 'absolute',
           bottom: 14,
           left: 18,
-          width: 24,
+          width: isDesktop ? 24 : 32,
           height: 1,
           background: c,
         }}
