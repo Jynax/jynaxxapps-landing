@@ -5,11 +5,11 @@ test('design tokens are available on :root', async ({ page }) => {
   const termBg = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue('--term-bg').trim()
   );
-  expect(termBg).toBe('#0A0805');
+  expect(termBg.toLowerCase()).toBe('#0a0805');
   const conCyan = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue('--con-cyan').trim()
   );
-  expect(conCyan).toBe('#6CE0D4');
+  expect(conCyan.toLowerCase()).toBe('#6ce0d4');
 });
 
 test('Tailwind preflight is active (unstyled h1 inherits font-size)', async ({ page }) => {
