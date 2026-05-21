@@ -15,6 +15,9 @@ import type { TraceState } from './traceStorage'
 import { formatShare } from './traceShare'
 import { useReducedMotion } from '../../parts/useReducedMotion'
 import { TraceGame } from './TraceGame'
+import { TraceMobilePlay } from './TraceMobilePlay'
+import { BottomSheet } from '../../../shell/BottomSheet'
+import { useIsMobile } from '../../parts/useIsMobile'
 
 declare global {
   interface Window {
@@ -52,6 +55,7 @@ function useCountdown(): string {
 export function TraceOverlay({ onClose }: { onClose: () => void }) {
   const reduced   = useReducedMotion()
   const countdown = useCountdown()
+  const mobile    = useIsMobile()
 
   // Computed once on mount — stable for the lifetime of this overlay instance.
   const [{ today, puzzle, locked, savedState }] = useState<{
@@ -73,19 +77,20 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
   const [overData, setOverData] = useState<OverData | null>(null)
   const [copied,   setCopied]   = useState(false)
 
-  const panelRef    = useRef<HTMLDivElement>(null)
-  const phaseRef    = useRef<Phase>(phase)
-  const onCloseRef  = useRef(onClose)
-  const copyTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const panelRef        = useRef<HTMLDivElement>(null)
+  const phaseRef        = useRef<Phase>(phase)
+  const onCloseRef      = useRef(onClose)
+  const copyTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => { phaseRef.current = phase },   [phase])
   useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
-  // Focus on open, restore on close.
+  // Focus the desktop panel on open, restore focus on close. On mobile the
+  // BottomSheet owns its surface and TraceMobilePlay focuses its own input.
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null
-    panelRef.current?.focus()
+    if (!mobile) panelRef.current?.focus()
     return () => prev?.focus()
-  }, [])
+  }, [mobile])
 
   // Global key handler: ESC always closes; ENTER advances from attract/over.
   // 1–4 keys suppressed so the LiveShell direction switcher can't fire.
@@ -175,6 +180,216 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
       </button>
     </div>
   )
+
+  // ── Mobile sheet body — attract phase ─────────────────────────────────────
+
+  const mobileAttractBody = (
+    <div data-trace-attract style={{ padding: '0 16px 24px' }}>
+      {/* Streak counter top-left per §M.9 */}
+      {savedState && (
+        <div style={{ ...mono, fontSize: 11, letterSpacing: '0.08em', color: 'var(--term-fg-dim)', marginBottom: 14 }}>
+          streak{' '}
+          <span style={{ color: 'var(--term-fg)' }}>{savedState.streak}</span>
+          {' · best '}
+          <span style={{ color: 'var(--term-fg)' }}>{savedState.maxStreak}</span>
+        </div>
+      )}
+
+      {locked && savedState && savedState.lastResult != null ? (
+        /* Locked today */
+        <div data-trace-locked>
+          <div style={{
+            ...mono, fontSize: 12, letterSpacing: '0.12em',
+            color: savedState.lastResult === 'win' ? 'var(--term-accent)' : 'var(--term-danger)',
+            textShadow: 'var(--term-glow)', marginBottom: 10,
+          }}>
+            {savedState.lastResult === 'win'
+              ? '[ OK ] route resolved'
+              : '[FAIL] no route — connection dropped'}
+          </div>
+          {shareBlock(formatShare({
+            id:        puzzle.id,
+            result:    savedState.lastResult,
+            moves:     Math.max(0, savedState.lastPath.length - 1),
+            par:       puzzle.par,
+            streak:    savedState.streak,
+            maxStreak: savedState.maxStreak,
+          }))}
+          {countdownLine}
+        </div>
+      ) : (
+        /* Attract — start/target display */
+        <div>
+          <div style={{ ...mono, fontSize: 11, letterSpacing: '0.1em', color: 'var(--term-fg-dim)', marginBottom: 10 }}>
+            daily route #{puzzle.id}
+          </div>
+          <div
+            data-trace-puzzle
+            style={{
+              ...mono, fontSize: 20, letterSpacing: '0.2em',
+              color: 'var(--term-fg-bright)', textShadow: 'var(--term-glow)',
+              marginBottom: 22,
+            }}
+          >
+            {puzzle.start.toUpperCase()} → {puzzle.target.toUpperCase()}
+          </div>
+          <button
+            type="button"
+            data-trace-begin
+            onClick={() => setPhase('playing')}
+            style={{
+              ...mono, fontSize: 11, letterSpacing: '0.18em',
+              height: 48,
+              color: 'var(--term-bg)', background: 'var(--term-fg-bright)',
+              border: 'none', padding: '0 20px', cursor: 'pointer',
+              boxShadow: '0 0 14px rgba(244,185,66,0.45)',
+              width: '100%',
+            }}
+          >
+            [ PRESS TO BEGIN ]
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
+  // ── Mobile sheet body — playing phase ─────────────────────────────────────
+  //
+  // §M.9 play surface: stacked 5-tile rows + hidden OS-keyboard input. Built as
+  // a separate component because mobile soft keyboards need an <input> event
+  // model, not the hardware-keydown model the desktop TraceGame uses.
+
+  const mobilePlayingBody = (
+    <TraceMobilePlay puzzle={puzzle} onEnd={handleGameEnd} />
+  )
+
+  // ── Mobile sheet body — over phase ────────────────────────────────────────
+
+  const mobileOverBody = overData && (
+    <div style={{ padding: '0 16px 24px' }}>
+      {/* Streak counter top-left §M.9 */}
+      <div style={{ ...mono, fontSize: 11, letterSpacing: '0.08em', color: 'var(--term-fg-dim)', marginBottom: 12 }}>
+        streak{' '}
+        <span style={{ color: 'var(--term-fg)' }}>{overData.state.streak}</span>
+        {' · best '}
+        <span style={{ color: 'var(--term-fg)' }}>{overData.state.maxStreak}</span>
+      </div>
+
+      <div style={{
+        ...mono, fontSize: 14, letterSpacing: '0.12em',
+        color: overData.result === 'win' ? 'var(--term-accent)' : 'var(--term-danger)',
+        textShadow: 'var(--term-glow)', marginBottom: 10,
+      }}>
+        {overData.result === 'win'
+          ? '[ OK ] route resolved'
+          : '[FAIL] no route — connection dropped'}
+      </div>
+
+      {/* Win: move count */}
+      {overData.result === 'win' && (
+        <div style={{ ...mono, fontSize: 12, letterSpacing: '0.06em', color: 'var(--term-fg-dim)', marginBottom: 10 }}>
+          {overData.path.length - 1} moves · par {puzzle.par}
+        </div>
+      )}
+
+      {/* Player's actual path as stacked words */}
+      <div data-trace-player-path style={{ display: 'inline-block', textAlign: 'left', marginBottom: 16 }}>
+        <div style={{ ...mono, fontSize: 10, letterSpacing: '0.1em', color: 'var(--term-fg-dim)', marginBottom: 6 }}>
+          your route:
+        </div>
+        {overData.path.map((word, i) => (
+          <div key={i} style={{
+            ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
+            color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
+            textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
+          }}>
+            {word.toUpperCase()}
+          </div>
+        ))}
+      </div>
+
+      {/* Loss: reveal route */}
+      {overData.result === 'loss' && overData.route && (
+        <div data-trace-reveal style={{ display: 'inline-block', textAlign: 'left', marginLeft: 24, marginBottom: 16, verticalAlign: 'top' }}>
+          <div style={{ ...mono, fontSize: 10, letterSpacing: '0.1em', color: 'var(--term-fg-dim)', marginBottom: 6 }}>
+            one route (par {puzzle.par}):
+          </div>
+          {overData.route.map((word, i) => (
+            <div key={i} style={{
+              ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
+              color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
+              textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
+            }}>
+              {word.toUpperCase()}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Share CTA — bottom of sheet, visible only after solve (§M.9) */}
+      {shareBlock(formatShare({
+        id:        puzzle.id,
+        result:    overData.result,
+        moves:     overData.path.length - 1,
+        par:       puzzle.par,
+        streak:    overData.state.streak,
+        maxStreak: overData.state.maxStreak,
+      }))}
+
+      {countdownLine}
+
+      <div style={{ ...mono, fontSize: 9, letterSpacing: '0.14em', color: 'var(--term-fg-dim)', marginTop: 16 }}>
+        ESC OR SWIPE TO CLOSE
+      </div>
+    </div>
+  )
+
+  // ── Mobile render path ─────────────────────────────────────────────────────
+
+  if (mobile) {
+    const sheetTitle = (
+      <div style={{
+        ...mono,
+        fontSize: 11,
+        letterSpacing: '0.14em',
+        color: 'var(--term-fg-dim)',
+        textTransform: 'uppercase' as const,
+      }}>
+        TRACE{' '}
+        <span style={{ color: 'rgba(244,185,66,0.4)' }}>·</span>
+        {' '}daily word ladder
+      </div>
+    )
+
+    return (
+      <>
+        {/* Screen reader live-region (polite) — same as desktop */}
+        <div aria-live="polite" aria-atomic="true" style={{
+          position: 'absolute', width: 1, height: 1, overflow: 'hidden',
+          clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap',
+        }}>
+          {phase === 'over' && overData
+            ? overData.result === 'win' ? 'Route resolved.' : 'No route — connection dropped.'
+            : ''}
+        </div>
+
+        <BottomSheet
+          open
+          onClose={onClose}
+          heightVh={90}
+          closeGlyph="[ESC]"
+          title={sheetTitle}
+          aria-label="TRACE — daily word puzzle"
+        >
+          <div data-trace-sheet data-trace-phase={phase}>
+            {phase === 'attract' && mobileAttractBody}
+            {phase === 'playing' && mobilePlayingBody}
+            {phase === 'over'    && mobileOverBody}
+          </div>
+        </BottomSheet>
+      </>
+    )
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
 

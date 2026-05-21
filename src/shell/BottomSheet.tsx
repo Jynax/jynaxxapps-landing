@@ -8,6 +8,8 @@ interface BottomSheetProps {
   heightVh?: number
   /** Close affordance glyph. Default ×. Terminal passes [ESC] per §10 no-icon rule. */
   closeGlyph?: ReactNode
+  /** Optional title rendered on the left of the close-button row. */
+  title?: ReactNode
   'aria-label': string
   children: ReactNode
 }
@@ -17,6 +19,7 @@ export function BottomSheet({
   onClose,
   heightVh = 85,
   closeGlyph = '×',
+  title,
   'aria-label': ariaLabel,
   children,
 }: BottomSheetProps) {
@@ -150,16 +153,23 @@ export function BottomSheet({
           />
         </div>
 
-        {/* Sheet header with 44×44px close button */}
+        {/* Sheet header — title (optional, left) + close button (right) */}
         <div
           style={{
             display: 'flex',
-            justifyContent: 'flex-end',
+            alignItems: 'center',
+            justifyContent: title ? 'space-between' : 'flex-end',
+            paddingLeft: title ? 16 : 4,
             paddingRight: 4,
             paddingTop: 2,
             flexShrink: 0,
           }}
         >
+          {title && (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {title}
+            </div>
+          )}
           <button
             data-sheet-close
             onClick={onClose}
@@ -176,6 +186,7 @@ export function BottomSheet({
               fontFamily: 'var(--font-mono)',
               color: 'rgba(255,255,255,0.55)',
               fontSize: 14,
+              flexShrink: 0,
             }}
           >
             {closeGlyph}
