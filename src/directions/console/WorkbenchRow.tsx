@@ -168,53 +168,62 @@ export function WorkbenchRow({ project: p, isOpen, divider, onToggle }: Workbenc
               </span>
               <span
                 style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 8,
-                  minWidth: 0,
                   flex: '1 1 auto',
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
                 }}
               >
                 <span
                   style={{
-                    ...display,
-                    fontSize: 17,
-                    color: CON.ink,
-                    lineHeight: 1.15,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
                     minWidth: 0,
                   }}
                 >
-                  {p.name}
+                  <span
+                    style={{
+                      ...display,
+                      fontSize: 17,
+                      color: CON.ink,
+                      lineHeight: 1.15,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      minWidth: 0,
+                      flex: '1 1 auto',
+                    }}
+                  >
+                    {p.name}
+                  </span>
+                  <span
+                    style={{
+                      ...mono,
+                      fontSize: 10,
+                      color: status.color,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      whiteSpace: 'nowrap',
+                      flex: '0 0 auto',
+                    }}
+                  >
+                    ● {status.label}
+                  </span>
                 </span>
                 <span
                   style={{
                     ...mono,
                     fontSize: 10,
                     color: CON.dim,
+                    whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    minWidth: 28,
                   }}
                 >
                   {p.slug}
                 </span>
-              </span>
-              <span
-                style={{
-                  ...mono,
-                  fontSize: 10,
-                  color: status.color,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                  flex: '0 0 auto',
-                }}
-              >
-                ● {status.label}
               </span>
             </span>
             <span style={{ borderTop: `1px solid ${CON.line}`, height: 0 }} />
