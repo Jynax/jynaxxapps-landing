@@ -7,14 +7,22 @@
 // consumed from src/data/jxData.ts only (never a copied array).
 //
 // Visual system: multi-accent, NO border-radius anywhere, flat surfaces,
-// blueprint grid bg (48×48) + faint scanlines, 48px outer padding, 64px
-// between sections. HUD tickers via shared useTicker; pulse + tickers freeze
-// under reduced motion (handled inside their components/hooks).
+// blueprint grid bg (48×48 desktop / 32×32 mobile) + faint scanlines,
+// 48px outer padding on desktop / 16px on mobile, 64px between sections
+// on desktop / 40px on mobile. HUD tickers via shared useTicker; pulse +
+// tickers freeze under reduced motion (handled inside their components/hooks).
+//
+// Mobile (< 1024px): blueprint grid 32×32, section padding 0 16px 40px,
+// page bottom clearance 96px (clears the floating mode pill). Manifest stays
+// 2-up. Workbench header row hidden, outer box border/bg dropped (row-cards
+// from #57 read individually, not double-framed). Directives 1-col stack.
+// Handshake 2-col grid. HudCounters strip mounts below <Hero /> (never in
+// the DOM at the same time as the desktop HUD counters — strict e2e contract).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { JX_PROJECTS, JX_MANIFESTO, JX_CONTACT, JX_FOOTER } from '../data/jxData'
 import { SectionHeader } from './parts/SectionHeader'
-import { HudBar } from './console/HudBar'
+import { HudBar, HudCounters } from './console/HudBar'
 import { Hero } from './console/Hero'
 import { SignalPanel } from './console/SignalPanel'
 import { ProjectCard } from './console/ProjectCard'
@@ -34,11 +42,30 @@ const mono = { fontFamily: 'var(--font-mono)' }
 const publicProjects = JX_PROJECTS.filter(p => p.group === 'public')
 const workshopProjects = JX_PROJECTS.filter(p => p.group === 'workshop')
 
+function useMediaQuery(query: string, defaultValue = false) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return defaultValue
+    return window.matchMedia(query).matches
+  })
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    const update = () => setMatches(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [query])
+  return matches
+}
+
 export default function Console() {
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   // Single shared open-id across manifest + workbench (matches reference:
   // opening one collapses any other).
   const [openId, setOpenId] = useState<string | null>(null)
   const toggle = (id: string) => setOpenId(prev => (prev === id ? null : id))
+
+  // Section padding: desktop 0 48px 64px, mobile 0 16px 40px
+  const sectionPad = isDesktop ? '0 48px 64px' : '0 16px 40px'
 
   return (
     <section
@@ -54,7 +81,7 @@ export default function Console() {
         overflow: 'hidden',
       }}
     >
-      {/* Blueprint grid background — 48×48, --con-line ~13%, radial fade */}
+      {/* Blueprint grid background — 48×48 desktop / 32×32 mobile, --con-line ~13%, radial fade */}
       <div
         aria-hidden="true"
         style={{
@@ -63,12 +90,12 @@ export default function Console() {
           pointerEvents: 'none',
           zIndex: 0,
           backgroundImage: `linear-gradient(${CON.line}22 1px, transparent 1px), linear-gradient(90deg, ${CON.line}22 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
+          backgroundSize: isDesktop ? '48px 48px' : '32px 32px',
           maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 90%)',
           WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 90%)',
         }}
       />
-      {/* Faint scanlines */}
+      {/* Faint scanlines — unchanged across breakpoints */}
       <div
         aria-hidden="true"
         style={{
@@ -84,18 +111,23 @@ export default function Console() {
       {/* Pulse keyframes (consumed by SignalPanel; disabled there under reduced motion) */}
       <style>{`@keyframes jxConPulse { 0% { transform: scale(.5); opacity: .6 } 100% { transform: scale(1.5); opacity: 0 } }`}</style>
 
-      <div style={{ position: 'relative', zIndex: 2 }}>
+      {/* Mobile: 96px bottom clearance so the last section clears the floating mode pill */}
+      <div style={{ position: 'relative', zIndex: 2, paddingBottom: isDesktop ? 0 : 96 }}>
         {/* 1 — HUD top bar (sticky) */}
         <HudBar />
 
         {/* 2 — Hero / mission briefing */}
         <Hero />
 
+        {/* Mobile-only: HUD counters strip below hero.
+            Desktop: counters render inside HudBar. Never both in the DOM — strict e2e rule. */}
+        {!isDesktop && <HudCounters strip />}
+
         {/* 3 — Signal · Now Playing */}
         <SignalPanel />
 
         {/* 4 — Manifest // Active Channel */}
-        <div id="con-manifest" style={{ padding: '0 48px 64px' }}>
+        <div id="con-manifest" style={{ padding: sectionPad }}>
           <SectionHeader
             id="01"
             title="manifest"
@@ -105,8 +137,9 @@ export default function Console() {
           <div
             style={{
               display: 'grid',
+              // Stays 2-up on mobile — compact cards (#56); gap tightens
               gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 22,
+              gap: isDesktop ? 22 : 12,
             }}
           >
             {publicProjects.map((p, i) => (
@@ -122,34 +155,45 @@ export default function Console() {
         </div>
 
         {/* 5 — Workbench // Not Yet Shipped */}
-        <div style={{ padding: '0 48px 64px' }}>
+        <div style={{ padding: sectionPad }}>
           <SectionHeader
             id="02"
             title="workbench"
             subtitle="not yet shipped"
             meta={`${workshopProjects.length} units in research, dev, or private use`}
           />
-          <div style={{ border: `1px solid ${CON.line}`, background: `${CON.bgAlt}80` }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '64px 200px 1fr 160px 120px',
-                gap: 14,
-                padding: '12px 20px',
-                borderBottom: `1px solid ${CON.line}`,
-                ...mono,
-                fontSize: 10,
-                color: CON.mid,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-              }}
-            >
-              <span>id</span>
-              <span>name</span>
-              <span>brief</span>
-              <span>status</span>
-              <span>touched</span>
-            </div>
+          {/* Desktop: bordered table-box containing header row + rows.
+              Mobile: no outer border/bg (row-cards from #57 read individually, M.7 contract).
+              Both halves of the #54/#57 contract must land for correct mobile styling. */}
+          <div
+            style={{
+              border: isDesktop ? `1px solid ${CON.line}` : 'none',
+              background: isDesktop ? `${CON.bgAlt}80` : 'transparent',
+            }}
+          >
+            {/* Column-label header row — desktop only (meaningless for stacked cards) */}
+            {isDesktop && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '64px 200px 1fr 160px 120px',
+                  gap: 14,
+                  padding: '12px 20px',
+                  borderBottom: `1px solid ${CON.line}`,
+                  ...mono,
+                  fontSize: 10,
+                  color: CON.mid,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <span>id</span>
+                <span>name</span>
+                <span>brief</span>
+                <span>status</span>
+                <span>touched</span>
+              </div>
+            )}
             {workshopProjects.map((p, i) => (
               <WorkbenchRow
                 key={p.id}
@@ -163,7 +207,7 @@ export default function Console() {
         </div>
 
         {/* 6 — Directives // House Rules */}
-        <div id="con-directives" style={{ padding: '0 48px 64px' }}>
+        <div id="con-directives" style={{ padding: sectionPad }}>
           <SectionHeader
             id="03"
             title="directives"
@@ -173,7 +217,8 @@ export default function Console() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
+              // Desktop: 5-column row; mobile: single-column stack
+              gridTemplateColumns: isDesktop ? 'repeat(5, 1fr)' : '1fr',
               gap: 14,
             }}
           >
@@ -190,7 +235,7 @@ export default function Console() {
         </div>
 
         {/* 7 — Handshake // Outbound Channels */}
-        <div style={{ padding: '0 48px 64px' }}>
+        <div style={{ padding: sectionPad }}>
           <SectionHeader
             id="04"
             title="handshake"
@@ -200,7 +245,8 @@ export default function Console() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              // Desktop: 4-column row; mobile: 2-column grid
+              gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)',
               gap: 14,
             }}
           >
@@ -220,7 +266,7 @@ export default function Console() {
         {/* 8 — Footer (display only) */}
         <footer
           style={{
-            padding: '32px 48px',
+            padding: isDesktop ? '32px 48px' : '32px 16px',
             borderTop: `1px solid ${CON.line}`,
             display: 'flex',
             justifyContent: 'space-between',
