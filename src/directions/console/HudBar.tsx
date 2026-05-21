@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
 import { useTicker } from '../parts/useTicker'
+import { useMediaQuery } from '../parts/useMediaQuery'
 import { CON } from './accents'
 
 // Sticky HUD top bar — section 1 of design-spec-console.md "Page structure".
@@ -29,21 +29,6 @@ const RATE_LINES = 90
 const RATE_COMMITS = 1
 
 const mono = { fontFamily: 'var(--font-mono)' }
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-  return matches
-}
 
 function SignalBars() {
   return (

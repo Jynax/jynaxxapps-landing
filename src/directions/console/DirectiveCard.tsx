@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
 import { CON } from './accents'
+import { useMediaQuery } from '../parts/useMediaQuery'
 
 // Section 6 — Directive (house-rule) card.
 // Top-left: `⌘ rule_0N` mono 10px accent. Middle: rule text display 22px.
@@ -7,24 +7,6 @@ import { CON } from './accents'
 
 const mono = { fontFamily: 'var(--font-mono)' }
 const display = { fontFamily: 'var(--font-display)', fontWeight: 700 }
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-
-  return matches
-}
 
 interface DirectiveCardProps {
   text: string

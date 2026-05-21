@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { CornerFrame } from '../parts/CornerFrame'
 import { CON } from './accents'
+import { useMediaQuery } from '../parts/useMediaQuery'
 
 // Section 2 — Hero / mission briefing, wrapped in CornerFrame.
 // Left: ~96px display title + two console buttons (smooth-scroll to
@@ -13,21 +14,6 @@ import { CON } from './accents'
 
 const mono = { fontFamily: 'var(--font-mono)' }
 const display = { fontFamily: 'var(--font-display)', fontWeight: 700 }
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-  return matches
-}
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })

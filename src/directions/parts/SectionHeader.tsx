@@ -3,7 +3,7 @@
 // flex row with space-between achieves the same visual result while remaining responsive —
 // intentional divergence reviewed against canonical and accepted.
 
-import { useEffect, useState } from 'react'
+import { useMediaQuery } from './useMediaQuery'
 
 interface SectionHeaderProps {
   /** Zero-padded section number, e.g. "01", "02" */
@@ -14,21 +14,6 @@ interface SectionHeaderProps {
   subtitle: string
   /** Right-aligned metadata string */
   meta: string
-}
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-  return matches
 }
 
 /**

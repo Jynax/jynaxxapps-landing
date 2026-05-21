@@ -19,8 +19,9 @@
 // Handshake 2-col grid. HudCounters strip mounts below <Hero /> (never in
 // the DOM at the same time as the desktop HUD counters — strict e2e contract).
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { JX_PROJECTS, JX_MANIFESTO, JX_CONTACT, JX_FOOTER } from '../data/jxData'
+import { useMediaQuery } from './parts/useMediaQuery'
 import { SectionHeader } from './parts/SectionHeader'
 import { HudBar, HudCounters } from './console/HudBar'
 import { Hero } from './console/Hero'
@@ -41,21 +42,6 @@ const mono = { fontFamily: 'var(--font-mono)' }
 
 const publicProjects = JX_PROJECTS.filter(p => p.group === 'public')
 const workshopProjects = JX_PROJECTS.filter(p => p.group === 'workshop')
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-  return matches
-}
 
 export default function Console() {
   const isDesktop = useMediaQuery('(min-width: 1024px)')

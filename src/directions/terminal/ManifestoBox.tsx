@@ -1,6 +1,6 @@
 import { JX_MANIFESTO } from '../../data/jxData'
 import { Prompt } from '../parts/Prompt'
-import { useEffect, useState } from 'react'
+import { useMediaQuery } from '../parts/useMediaQuery'
 
 // Reconciled against canonical terminal.jsx: same box-drawing glyph set
 // (╔═╗║╚═╝) and the same .padEnd(48) right-border alignment for the 5
@@ -18,24 +18,6 @@ import { useEffect, useState } from 'react'
  */
 const INNER = 48 // padEnd target width
 const MOBILE_INNER = 34
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-
-  return matches
-}
 
 function wrapRule(line: string, index: number, width: number) {
   const words = `${index + 1}. ${line}`.split(' ')
@@ -70,7 +52,7 @@ function makeBox(inner: number) {
 
 export function ManifestoBox() {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
-  const hasMobileBoxRoom = useMediaQuery('(min-width: 360px)', true)
+  const hasMobileBoxRoom = useMediaQuery('(min-width: 360px)')
   const desktopBox = makeBox(INNER)
   const mobileBox = makeBox(MOBILE_INNER)
 

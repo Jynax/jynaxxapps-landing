@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Project } from '../../data/jxData'
+import { useMediaQuery } from '../parts/useMediaQuery'
 import { JX_STATUS } from '../../data/jxData'
 import { CON } from './accents'
 import { CONSOLE_FOCUS_STYLE, DossierMeta } from './shared'
@@ -11,24 +12,6 @@ import { CONSOLE_FOCUS_STYLE, DossierMeta } from './shared'
 
 const mono = { fontFamily: 'var(--font-mono)' }
 const display = { fontFamily: 'var(--font-display)', fontWeight: 700 }
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-
-  return matches
-}
 
 interface WorkbenchRowProps {
   project: Project
