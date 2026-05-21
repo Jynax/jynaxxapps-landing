@@ -36,13 +36,13 @@ export function ProjectCard({ project: p, accent: c, isOpen, onToggle }: Project
   const stackStr = p.stack.length > 0 ? p.stack.join(' · ') : '—'
   const stackTight = p.stack.length > 0 ? p.stack.join('·') : '—'
 
-  const borderColor = isOpen ? c : hover ? `${c}88` : CON.line
+  const borderColor = isOpen ? c : (isDesktop && hover) ? `${c}88` : CON.line
 
   return (
     <article
       data-project-card
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseEnter={() => isDesktop && setHover(true)}
+      onMouseLeave={() => isDesktop && setHover(false)}
       style={{
         background: CON.bgAlt,
         border: `1px solid ${borderColor}`,
