@@ -47,6 +47,12 @@ export function LiveShell() {
   const [pillCollapsed, setPillCollapsed] = useState(false)
   const lastScrollTopRef = useRef(0)
   const collapseIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Direction-change debounce: accumulated pixels scrolled in the current direction
+  // since the last pill state change (or last direction reversal). A state change only
+  // fires once the user has scrolled ≥ PILL_DIRECTION_THRESHOLD px in the new direction,
+  // preventing jitter from small direction reversals near the bottom of a long page.
+  const PILL_DIRECTION_THRESHOLD = 30
+  const scrollDirectionAccumRef = useRef(0)
 
   // Test seam: renders a BottomSheet trigger when window.__BOTTOM_SHEET_TEST__ is set
   const showTestSheet = (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ === true
@@ -70,11 +76,14 @@ export function LiveShell() {
     }
   }, [])
 
-  // Scroll to top on direction change
+  // Scroll to top on direction change; reset scroll-tracking refs so the debounce
+  // accumulator doesn't carry over stale state from the previous direction's scroll position.
   useEffect(() => {
     if (scrollerRef.current) {
       scrollerRef.current.scrollTop = 0
     }
+    lastScrollTopRef.current = 0
+    scrollDirectionAccumRef.current = 0
   }, [direction])
 
   // Mobile breakpoint listener
@@ -104,12 +113,27 @@ export function LiveShell() {
 
     const onScroll = () => {
       const currentTop = scroller.scrollTop
-      if (currentTop > 240 && currentTop > lastScrollTopRef.current) {
-        setPillCollapsed(true)
-      } else if (currentTop < lastScrollTopRef.current) {
-        setPillCollapsed(false)
-      }
+      const delta = currentTop - lastScrollTopRef.current
       lastScrollTopRef.current = currentTop
+
+      if (delta > 0) {
+        // Scrolling down — accumulate; reset if previously scrolling up
+        if (scrollDirectionAccumRef.current < 0) scrollDirectionAccumRef.current = 0
+        scrollDirectionAccumRef.current += delta
+        if (currentTop > 240 && scrollDirectionAccumRef.current >= PILL_DIRECTION_THRESHOLD) {
+          setPillCollapsed(true)
+          scrollDirectionAccumRef.current = 0
+        }
+      } else if (delta < 0) {
+        // Scrolling up — accumulate; reset if previously scrolling down
+        if (scrollDirectionAccumRef.current > 0) scrollDirectionAccumRef.current = 0
+        scrollDirectionAccumRef.current += delta // delta is negative
+        if (scrollDirectionAccumRef.current <= -PILL_DIRECTION_THRESHOLD) {
+          setPillCollapsed(false)
+          scrollDirectionAccumRef.current = 0
+        }
+      }
+
       resetIdle()
     }
 
