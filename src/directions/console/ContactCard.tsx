@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { ContactKind } from '../../data/jxData'
 import { CON } from './accents'
+import { useMediaQuery } from '../parts/useMediaQuery'
 
 // Section 7 — Contact card.
 // Top: bespoke inline SVG icon (mail/code/broadcast/feed — NOT emoji) + label.
@@ -8,24 +9,6 @@ import { CON } from './accents'
 // external https:// gets target/rel; mailto + /feed.xml get neither.
 
 const mono = { fontFamily: 'var(--font-mono)' }
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-
-  return matches
-}
 
 interface ContactCardProps {
   kind: ContactKind

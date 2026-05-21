@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLiveFeed } from '../parts/useLiveFeed'
 import { useReducedMotion } from '../parts/useReducedMotion'
 import { CON } from './accents'
+import { useMediaQuery } from '../parts/useMediaQuery'
 
 // Section 3 — Signal · Live Feed, a faithful port of the canonical
 // `ConsoleLiveFeed` (May-16 reference `directions/console.jsx`). Task #27
@@ -25,7 +26,7 @@ import { CON } from './accents'
 //
 // Task #55: mobile branch (<1024px) stacks the three inner columns vertically
 // and turns the STATE LED column into a horizontal row. Desktop rendering is
-// unchanged. useMediaQuery mirrors the pattern in terminal/ProjectListing.tsx.
+// unchanged.
 
 const mono = { fontFamily: 'var(--font-mono)' }
 
@@ -46,23 +47,6 @@ function buildWavePath(phase: number): string {
     points.push(`${x},${y.toFixed(2)}`)
   }
   return `M ${points.join(' L ')}`
-}
-
-function useMediaQuery(query: string, defaultValue = false) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return defaultValue
-    return window.matchMedia(query).matches
-  })
-
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    const update = () => setMatches(media.matches)
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [query])
-
-  return matches
 }
 
 function StatusLed({
