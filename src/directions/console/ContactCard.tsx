@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ContactKind } from '../../data/jxData'
 import { CON } from './accents'
 
@@ -8,6 +8,24 @@ import { CON } from './accents'
 // external https:// gets target/rel; mailto + /feed.xml get neither.
 
 const mono = { fontFamily: 'var(--font-mono)' }
+
+function useMediaQuery(query: string, defaultValue = false) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return defaultValue
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    const update = () => setMatches(media.matches)
+
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [query])
+
+  return matches
+}
 
 interface ContactCardProps {
   kind: ContactKind
@@ -60,7 +78,10 @@ function ContactIcon({ kind, stroke }: { kind: ContactKind; stroke: string }) {
 
 export function ContactCard({ kind, label, value, href, accent: c }: ContactCardProps) {
   const [hover, setHover] = useState(false)
+  const [pressed, setPressed] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const isExternal = href.startsWith('https://')
+  const isPressed = !isDesktop && pressed
 
   return (
     <a
@@ -70,14 +91,29 @@ export function ContactCard({ kind, label, value, href, accent: c }: ContactCard
       {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onPointerDown={() => {
+        if (!isDesktop) setPressed(true)
+      }}
+      onPointerUp={() => setPressed(false)}
+      onPointerCancel={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
       style={{
         display: 'block',
         background: `${CON.bgAlt}99`,
-        border: `1px solid ${hover ? c : CON.line}`,
+        border: `1px solid ${hover || isPressed ? c : CON.line}`,
         padding: '20px 22px',
         cursor: 'pointer',
-        transition: 'border-color .15s',
+        transition: isDesktop ? 'border-color .15s' : 'border-color .15s, transform .12s',
         textDecoration: 'none',
+        ...(isDesktop
+          ? {}
+          : {
+              width: '100%',
+              minHeight: 110,
+              boxSizing: 'border-box',
+              padding: '16px 14px',
+              transform: isPressed ? 'translateY(1px)' : 'translateY(0)',
+            }),
       }}
     >
       <div
@@ -92,7 +128,7 @@ export function ContactCard({ kind, label, value, href, accent: c }: ContactCard
         <span
           style={{
             ...mono,
-            fontSize: 10,
+            fontSize: isDesktop ? 10 : 9.5,
             color: CON.dim,
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
@@ -101,7 +137,17 @@ export function ContactCard({ kind, label, value, href, accent: c }: ContactCard
           {label}
         </span>
       </div>
-      <div style={{ ...mono, fontSize: 14, color: CON.ink, letterSpacing: '0.02em' }}>{value}</div>
+      <div
+        style={{
+          ...mono,
+          fontSize: isDesktop ? 14 : 13,
+          color: CON.ink,
+          letterSpacing: '0.02em',
+          ...(!isDesktop ? { wordBreak: 'break-all' as const } : {}),
+        }}
+      >
+        {value}
+      </div>
     </a>
   )
 }
