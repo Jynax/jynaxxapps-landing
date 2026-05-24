@@ -112,19 +112,16 @@ function TailStrip({
     <div
       data-tail-strip
       style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
+        marginTop: 16,
         height: 56,
-        background: 'linear-gradient(180deg, rgba(10,8,5,0) 0%, var(--term-bg) 16px)',
+        background: 'rgba(244,185,66,0.03)',
+        border: '1px solid rgba(244,185,66,0.12)',
+        borderRadius: 4,
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         paddingLeft: 12,
         paddingRight: 12,
-        paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
-        zIndex: 10,
         fontFamily: 'var(--font-mono)',
       }}
     >
