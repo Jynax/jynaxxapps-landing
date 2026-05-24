@@ -131,8 +131,8 @@ export default function Terminal() {
         background: 'var(--term-bg)',
         color: 'var(--term-fg)',
         fontFamily: 'var(--font-mono)',
-        // §M.1: mobile padding 28px 20px 96px (96px bottom clears #47 tail-strip)
-        padding: isMobile ? '28px 20px 96px' : '40px 56px 80px',
+        // §M.1: mobile padding 28px 20px 64px (tail-strip is now in-flow at bottom)
+        padding: isMobile ? '28px 20px 64px' : '40px 56px 80px',
         overflow: 'hidden',
       }}
     >

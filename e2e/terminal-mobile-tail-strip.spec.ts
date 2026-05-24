@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-// Task #47 — Terminal mobile — tail-strip
+// Task #47 / #62 — Terminal mobile — tail-strip
 //
-// Verifies the PhosphorKeyboard collapses to a sticky-bottom tail-strip on
-// mobile (<640px) with the TRACE `?` entry point (consumed by #48), and that
-// the full desktop keyboard renders unchanged at desktop width.
+// Verifies the PhosphorKeyboard collapses to an in-flow tail-strip on mobile
+// (<640px), placed at the bottom of the page so users scroll to discover it.
+// Contains the TRACE `?` entry point (consumed by #48). Full desktop keyboard
+// renders unchanged at desktop width.
 
 const MOBILE_VIEWPORT = { width: 412, height: 915 };   // Pixel 7
 const DESKTOP_VIEWPORT = { width: 1280, height: 900 };
