@@ -115,15 +115,14 @@ function requireServiceToken(request: Request, expected: string): Response | nul
   return null
 }
 
-// Constant-time string comparison — avoids leaking the token length-by-length
-// via response timing. Compares a fixed number of bytes regardless of input.
 function timingSafeEqual(a: string, b: string): boolean {
   const enc = new TextEncoder()
   const ab = enc.encode(a)
   const bb = enc.encode(b)
-  let diff = ab.length ^ bb.length
+  if (ab.length !== bb.length) return false
+  let diff = 0
   for (let i = 0; i < ab.length; i++) {
-    diff |= ab[i] ^ (bb[i] ?? 0)
+    diff |= ab[i] ^ bb[i]
   }
   return diff === 0
 }

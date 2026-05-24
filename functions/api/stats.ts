@@ -80,14 +80,14 @@ function requireServiceToken(request: Request, expected: string): Response | nul
   return null
 }
 
-// Constant-time string comparison — mirrors live.ts exactly.
 function timingSafeEqual(a: string, b: string): boolean {
   const enc = new TextEncoder()
   const ab = enc.encode(a)
   const bb = enc.encode(b)
-  let diff = ab.length ^ bb.length
+  if (ab.length !== bb.length) return false
+  let diff = 0
   for (let i = 0; i < ab.length; i++) {
-    diff |= ab[i] ^ (bb[i] ?? 0)
+    diff |= ab[i] ^ bb[i]
   }
   return diff === 0
 }
