@@ -1,7 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
 
 const TOKEN_KEY = 'jynaxx-admin-token'
-const GOOGLE_CLIENT_ID = '531901990100-bsroul9si6nd9c7kdml9g3p9idfbm58m.apps.googleusercontent.com'
+
+// Configured via Vite env var; set VITE_GOOGLE_CLIENT_ID in Cloudflare Pages build env
+// and locally in .env (.env.example shows the format). OAuth client IDs are public-safe
+// but pinning to env keeps deployment identity out of the source tree.
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
 
 export { GOOGLE_CLIENT_ID }
 

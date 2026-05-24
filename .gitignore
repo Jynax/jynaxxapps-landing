@@ -13,6 +13,7 @@ dist-ssr
 *.local
 .env
 .env.*
+!.env.example
 .dev.vars
 
 # Editor directories and files
@@ -30,3 +31,6 @@ dist-ssr
 test-results/
 playwright-report/
 .claude/
+
+# Internal design feedback / annotated screenshots
+feedback/
