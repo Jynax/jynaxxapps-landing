@@ -76,10 +76,22 @@ async function verifyToken(token: string, secret: string): Promise<boolean> {
     if (now - timestamp > 24 * 60 * 60 * 1000) return false
 
     const expected = await createHmac(payload, secret)
-    return signature === expected
+    return timingSafeEqual(signature, expected)
   } catch {
     return false
   }
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder()
+  const ab = enc.encode(a)
+  const bb = enc.encode(b)
+  if (ab.length !== bb.length) return false
+  let diff = 0
+  for (let i = 0; i < ab.length; i++) {
+    diff |= ab[i] ^ bb[i]
+  }
+  return diff === 0
 }
 
 async function createHmac(data: string, key: string): Promise<string> {

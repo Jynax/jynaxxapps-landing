@@ -16,9 +16,7 @@ export function useAdminAuth() {
   useEffect(() => {
     if (!token) return
     fetch('/api/content', {
-      method: 'PUT',
       headers: { Authorization: `Bearer ${token}` },
-      body: '{}',
     }).then(res => {
       if (res.status === 403 || res.status === 401) {
         localStorage.removeItem(TOKEN_KEY)
