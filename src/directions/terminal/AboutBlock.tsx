@@ -96,12 +96,12 @@ export function AboutBlock() {
           this site is the workshop. it's a personal portfolio and a public
           maker's notebook — not a corporate site, not a pitch. i pick the
           weirder option on purpose, break things to learn how they work, and
-          keep notes so future me knows what past me was thinking.
+          keep notes so future me knows what earlier version of me was thinking.
         </p>
         <p style={{ margin: '14px 0 0' }}>
           who it's for: other indie makers and curious tinkerers who'll
           appreciate the craft and the experiments. future me, as an index of
-          what got built and learned. and — optionally — anyone who wants to
+          what got built and learned. and, optionally, anyone who wants to
           see the maker side.
         </p>
       </div>
