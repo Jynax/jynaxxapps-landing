@@ -68,8 +68,10 @@ export function TraceGame({
         setError(null)
         if (next.status === 'playing') {
           setMoveAnnounce(`${word.toUpperCase()} accepted — ${next.movesLeft} moves left`)
-        }
-        if (next.status !== 'playing') {
+        } else {
+          setMoveAnnounce(next.status === 'won'
+            ? `${word.toUpperCase()} — route resolved`
+            : `${word.toUpperCase()} — connection dropped`)
           onEndRef.current(next.status === 'won' ? 'win' : 'loss', next.path)
         }
         return
