@@ -12,4 +12,5 @@ export const PUZZLES: Puzzle[] = [
   { id: 6, start: 'groan', target: 'brain', par: 3 },  // groan→groin→grain→brain
   { id: 7, start: 'shore', target: 'stale', par: 3 },  // shore→store→stare→stale
   { id: 8, start: 'grind', target: 'braid', par: 3 },  // grind→grand→brand→braid
+  { id: 9, start: 'catch', target: 'harsh', par: 4 },  // catch→match→march→marsh→harsh
 ];
