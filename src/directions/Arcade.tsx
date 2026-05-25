@@ -23,6 +23,7 @@ import { JX_PROJECTS, JX_MANIFESTO } from '../data/jxData'
 import { useBlink } from './parts/useBlink'
 import { useReducedMotion } from './parts/useReducedMotion'
 import { useLiveFeed } from './parts/useLiveFeed'
+import { useMediaQuery } from './parts/useMediaQuery'
 import { ARC, CART_ACCENTS, accentAt, fmt } from './arcade/tokens'
 import { Starfield } from './arcade/Starfield'
 import { PlayerSprite } from './arcade/PlayerSprite'
@@ -30,7 +31,7 @@ import { Cartridge } from './arcade/Cartridge'
 import { CartDossier } from './arcade/CartDossier'
 import { DevKitRow, DevKitInline } from './arcade/DevKit'
 import { PowerUp } from './arcade/PowerUp'
-import { ArcadeLiveStrip } from './arcade/ArcadeLiveStrip'
+import { ArcadeLiveStrip, ArcadeScoreboard } from './arcade/ArcadeLiveStrip'
 import { CoinGameOverlay } from './arcade/coingame/CoinGameOverlay'
 import { ARCADE_GAMES } from './arcade/coingame/games'
 
@@ -90,9 +91,11 @@ export default function Arcade() {
   const blink = useBlink(420)
   const coin = useBlink(900)
   const feed = useLiveFeed()
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [selectedId, setSelectedId] = useState<string | null>('cyberdeck')
   const select = (id: string) => setSelectedId(prev => (prev === id ? null : id))
   const [coinOpen, setCoinOpen] = useState(false)
+  const [insertActive, setInsertActive] = useState(false)
   const [gameIndex, setGameIndex] = useState(0)
   const [hi, setHi] = useState<HiScore>(readStoredHi)
   const recordScore = (s: number) => {
@@ -138,7 +141,16 @@ export default function Arcade() {
         }}
       />
 
-      <div style={{ position: 'relative', zIndex: 2, padding: '36px 56px 80px' }}>
+      {/* Piece 1: content wrapper padding — mobile tightened, desktop unchanged */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          padding: isDesktop
+            ? '36px 56px 80px'
+            : `24px 16px calc(96px + env(safe-area-inset-bottom))`,
+        }}
+      >
         {/* HUD top bar */}
         <div
           style={{
@@ -169,18 +181,31 @@ export default function Arcade() {
           </span>
         </div>
 
+        {/* Piece 7: prop rename coin → coinBlink + new gameOpen prop */}
         {/* Live feed — collapsable row directly under the HUD */}
-        <ArcadeLiveStrip feed={feed} blink={blink} coin={coin} reduced={reduced} />
+        <ArcadeLiveStrip feed={feed} blink={blink} coinBlink={coin} gameOpen={coinOpen} reduced={reduced} />
 
-        {/* Big title */}
+        {/* Piece 2: Big title — type sizes mobile-branched */}
         <div style={{ textAlign: 'center', marginTop: 28, position: 'relative' }}>
-          <div style={{ ...px, fontSize: 11, letterSpacing: '0.4em', color: ARC.neon2, marginBottom: 12, textShadow: `0 0 8px ${ARC.neon2}99` }}>
+          {/* ★ PRESS START TO BUILD ★ — 18px on mobile (within 18–22px band), 11px on desktop */}
+          <div
+            style={{
+              ...px,
+              fontSize: isDesktop ? 11 : 18,
+              letterSpacing: '0.4em',
+              color: ARC.neon2,
+              marginBottom: 12,
+              textShadow: `0 0 8px ${ARC.neon2}99`,
+              textWrap: 'balance',
+            }}
+          >
             ★ PRESS START TO BUILD ★
           </div>
+          {/* JYNAXX / APPS wordmark — 56 on desktop, 28 on mobile */}
           <h1
             style={{
               ...px,
-              fontSize: 56,
+              fontSize: isDesktop ? 56 : 28,
               lineHeight: 1.05,
               margin: 0,
               color: ARC.neon3,
@@ -195,27 +220,40 @@ export default function Arcade() {
           <div style={{ ...mono, fontSize: 22, marginTop: 12, color: ARC.ink, opacity: 0.9 }}>
             ━━━━━━ a workshop for digital machines ━━━━━━
           </div>
+          {/* Piece 3: INSERT COIN trigger — full-width 64px on mobile with yellow border */}
           <button
             type="button"
             data-arcade-insert-coin
             onClick={() => setCoinOpen(true)}
+            onPointerDown={() => { if (!isDesktop) setInsertActive(true) }}
+            onPointerUp={() => setInsertActive(false)}
+            onPointerLeave={() => setInsertActive(false)}
             aria-label="Insert coin — play a hidden mini-game"
             style={{
               ...px,
-              fontSize: 9,
+              fontSize: isDesktop ? 9 : 18,
               color: ARC.neon3,
               marginTop: 16,
-              opacity: coin ? 1 : 0.2,
+              opacity: isDesktop ? (coin ? 1 : 0.2) : 1,
               letterSpacing: '0.2em',
-              background: 'transparent',
-              border: 'none',
-              padding: 4,
+              background: !isDesktop && insertActive ? '#FFE63622' : 'transparent',
+              border: isDesktop ? 'none' : `2px solid ${ARC.neon3}`,
+              padding: isDesktop ? 4 : '0 16px',
               cursor: 'pointer',
+              width: isDesktop ? undefined : '100%',
+              height: isDesktop ? undefined : 64,
+              display: isDesktop ? undefined : 'flex',
+              alignItems: isDesktop ? undefined : 'center',
+              justifyContent: isDesktop ? undefined : 'center',
             }}
           >
             ◇ INSERT COIN ◇
           </button>
         </div>
+
+        {/* Piece 5: Mobile scoreboard mount-point — standalone between INSERT COIN and cart grid */}
+        {/* TODO(#74): replace ArcadeScoreboard body with real implementation */}
+        {!isDesktop && <ArcadeScoreboard />}
 
         {/* About strip — player profile */}
         <div style={{ marginTop: 64, padding: 28, ...panel }}>
@@ -223,7 +261,15 @@ export default function Arcade() {
             <div style={{ ...px, fontSize: 13, color: ARC.neon3, letterSpacing: '0.16em', textShadow: `0 0 8px ${ARC.neon3}66` }}>▸ PLAYER PROFILE</div>
             <div style={{ ...px, fontSize: 9, color: ARC.dim, letterSpacing: '0.15em' }}>CLASS · MAKER · LV. 04</div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 180px', gap: 24, alignItems: 'center' }}>
+          {/* Piece 6: PlayerSprite section grid — single-column on mobile; drop borderLeft on stats */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isDesktop ? '90px 1fr 180px' : '1fr',
+              gap: isDesktop ? 24 : 12,
+              alignItems: 'center',
+            }}
+          >
             <PlayerSprite />
             <div>
               <p style={{ ...mono, fontSize: 22, lineHeight: 1.35, margin: 0, color: ARC.ink }}>
@@ -231,7 +277,18 @@ export default function Arcade() {
                 breaking, and seeing what&apos;s possible. dislikes todo apps without opinions.
               </p>
             </div>
-            <div style={{ borderLeft: `2px solid ${ARC.neon2}55`, paddingLeft: 22, ...px, fontSize: 9, color: ARC.dim, lineHeight: 2.1 }}>
+            <div
+              style={{
+                borderLeft: isDesktop ? `2px solid ${ARC.neon2}55` : undefined,
+                borderTop: isDesktop ? undefined : `2px solid ${ARC.neon2}55`,
+                paddingLeft: isDesktop ? 22 : undefined,
+                paddingTop: isDesktop ? undefined : 12,
+                ...px,
+                fontSize: 9,
+                color: ARC.dim,
+                lineHeight: 2.1,
+              }}
+            >
               <div>HP &nbsp;<span style={{ color: ARC.neon4 }}>∞ COFFEE</span></div>
               <div>WPN &nbsp;<span style={{ color: ARC.neon1 }}>CURIOSITY</span></div>
               <div>BUDDY &nbsp;<span style={{ color: ARC.neon2 }}>CLAUDE</span></div>
@@ -243,10 +300,11 @@ export default function Arcade() {
         <div style={{ marginTop: 40 }}>
           <CartDossier project={loadedPublic} accent={cartAccent} onClose={() => setSelectedId(null)} />
 
+          {/* Piece 2: section label — 14px desktop, 11px mobile */}
           <div
             style={{
               ...px,
-              fontSize: 14,
+              fontSize: isDesktop ? 14 : 11,
               textAlign: 'center',
               color: ARC.neon1,
               letterSpacing: '0.2em',
@@ -257,7 +315,14 @@ export default function Arcade() {
           >
             — SELECT YOUR CARTRIDGE —
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+          {/* Piece 4: cart grid — repeat(6,1fr) on desktop, 1fr on mobile; gap 10→14 */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isDesktop ? 'repeat(6, 1fr)' : '1fr',
+              gap: isDesktop ? 10 : 14,
+            }}
+          >
             {publicProjects.map((p, i) => (
               <Cartridge
                 key={p.id}
@@ -268,7 +333,17 @@ export default function Arcade() {
               />
             ))}
           </div>
-          <div style={{ ...px, fontSize: 9, textAlign: 'center', marginTop: 14, color: ARC.dim, letterSpacing: '0.15em' }}>
+          {/* Piece 4: footer hint — 9px desktop, 10px mobile (pixel font) */}
+          <div
+            style={{
+              ...px,
+              fontSize: isDesktop ? 9 : 10,
+              textAlign: 'center',
+              marginTop: 14,
+              color: ARC.dim,
+              letterSpacing: '0.15em',
+            }}
+          >
             ◀ ▶ &nbsp; CLICK A CART TO LOAD &nbsp; ◆ &nbsp; CURRENTLY LOADED:
             <span style={{ color: ARC.neon3, marginLeft: 8 }}>{selectedId ? selectedId.toUpperCase() : 'NONE'}</span>
           </div>
@@ -284,7 +359,14 @@ export default function Arcade() {
               {workshopProjects.length} TRACKS · DEEP CATALOG
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+          {/* Piece 6: DevKit grid — repeat(2,1fr) on desktop, 1fr on mobile */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isDesktop ? 'repeat(2, 1fr)' : '1fr',
+              gap: isDesktop ? 14 : 12,
+            }}
+          >
             {workshopProjects.map(p => (
               <DevKitRow key={p.id} project={p} selected={selectedId === p.id} onSelect={() => select(p.id)} />
             ))}
@@ -298,7 +380,14 @@ export default function Arcade() {
             <div style={{ ...px, fontSize: 13, color: ARC.neon3, letterSpacing: '0.16em', textShadow: `0 0 8px ${ARC.neon3}66` }}>★ HOUSE POWER-UPS ★</div>
             <div style={{ ...px, fontSize: 9, color: ARC.dim, letterSpacing: '0.15em' }}>5 RULES · PERMANENT</div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+          {/* Piece 6: PowerUp grid — repeat(5,1fr) on desktop, 1fr on mobile */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isDesktop ? 'repeat(5, 1fr)' : '1fr',
+              gap: isDesktop ? 16 : 12,
+            }}
+          >
             {JX_MANIFESTO.map((m, i) => (
               <PowerUp key={i} text={m} index={i} />
             ))}
