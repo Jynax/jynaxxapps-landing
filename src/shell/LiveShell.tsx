@@ -43,16 +43,8 @@ export function LiveShell() {
 
   // Mobile breakpoint (<640px) — no JS useIsMobile hook; detected once + updated on resize
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 639px)').matches)
-  // Auto-collapse state: pill collapses to single dot when scrolled past 240px on mobile
-  const [pillCollapsed, setPillCollapsed] = useState(false)
-  const lastScrollTopRef = useRef(0)
-  const collapseIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Direction-change debounce: accumulated pixels scrolled in the current direction
-  // since the last pill state change (or last direction reversal). A state change only
-  // fires once the user has scrolled ≥ PILL_DIRECTION_THRESHOLD px in the new direction,
-  // preventing jitter from small direction reversals near the bottom of a long page.
-  const PILL_DIRECTION_THRESHOLD = 30
-  const scrollDirectionAccumRef = useRef(0)
+  // Mobile pill: starts collapsed; tap to expand, collapses after selection
+  const [pillCollapsed, setPillCollapsed] = useState(() => window.matchMedia('(max-width: 639px)').matches)
 
   // Test seam: renders a BottomSheet trigger when window.__BOTTOM_SHEET_TEST__ is set
   const showTestSheet = (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ === true
@@ -80,7 +72,6 @@ export function LiveShell() {
   useEffect(() => {
     return () => {
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-      if (collapseIdleTimerRef.current) clearTimeout(collapseIdleTimerRef.current)
     }
   }, [])
 
@@ -90,8 +81,6 @@ export function LiveShell() {
     if (scrollerRef.current) {
       scrollerRef.current.scrollTop = 0
     }
-    lastScrollTopRef.current = 0
-    scrollDirectionAccumRef.current = 0
   }, [direction])
 
   // Mobile breakpoint listener
@@ -99,58 +88,12 @@ export function LiveShell() {
     const mq = window.matchMedia('(max-width: 639px)')
     const onChange = (e: MediaQueryListEvent) => {
       setIsMobile(e.matches)
-      if (!e.matches) setPillCollapsed(false)
+      setPillCollapsed(e.matches) // collapse on mobile, uncollapse on desktop
     }
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  // Auto-collapse pill on scroll past 240px (mobile only)
-  useEffect(() => {
-    if (!isMobile) {
-      setPillCollapsed(false)
-      return
-    }
-    const scroller = scrollerRef.current
-    if (!scroller) return
-
-    const resetIdle = () => {
-      if (collapseIdleTimerRef.current) clearTimeout(collapseIdleTimerRef.current)
-      collapseIdleTimerRef.current = setTimeout(() => setPillCollapsed(false), 600)
-    }
-
-    const onScroll = () => {
-      const currentTop = scroller.scrollTop
-      const delta = currentTop - lastScrollTopRef.current
-      lastScrollTopRef.current = currentTop
-
-      if (delta > 0) {
-        // Scrolling down — accumulate; reset if previously scrolling up
-        if (scrollDirectionAccumRef.current < 0) scrollDirectionAccumRef.current = 0
-        scrollDirectionAccumRef.current += delta
-        if (currentTop > 240 && scrollDirectionAccumRef.current >= PILL_DIRECTION_THRESHOLD) {
-          setPillCollapsed(true)
-          scrollDirectionAccumRef.current = 0
-        }
-      } else if (delta < 0) {
-        // Scrolling up — accumulate; reset if previously scrolling down
-        if (scrollDirectionAccumRef.current > 0) scrollDirectionAccumRef.current = 0
-        scrollDirectionAccumRef.current += delta // delta is negative
-        if (scrollDirectionAccumRef.current <= -PILL_DIRECTION_THRESHOLD) {
-          setPillCollapsed(false)
-          scrollDirectionAccumRef.current = 0
-        }
-      }
-
-      resetIdle()
-    }
-
-    scroller.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      scroller.removeEventListener('scroll', onScroll)
-      if (collapseIdleTimerRef.current) clearTimeout(collapseIdleTimerRef.current)
-    }
-  }, [isMobile])
 
   // Keyboard handler: 1→terminal 2→console 3→journal 4→arcade
   useEffect(() => {
@@ -213,42 +156,44 @@ export function LiveShell() {
 
       {/* ── Floating direction switcher — bottom-right pill ── */}
       {isMobile && pillCollapsed ? (
-        // Collapsed state: single active-direction dot; tap to re-expand
+        // Collapsed state: accent-labeled round button; tap to expand direction choices
         <button
           data-pill-collapsed
           onClick={() => setPillCollapsed(false)}
-          aria-label="Expand direction switcher"
+          aria-label={`Expand direction switcher — currently ${currentDir.full}`}
           style={{
             position: 'fixed',
             bottom: pillBottomMobile,
             right: 12,
             zIndex: 10000,
-            width: 36,
-            height: 36,
+            width: 44,
+            height: 44,
             borderRadius: 99,
-            background: 'rgba(8, 12, 16, 0.72)',
+            background: 'rgba(8, 12, 16, 0.82)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            border: `1px solid ${currentDir.accent}40`,
+            border: `2px solid ${currentDir.accent}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+            boxShadow: `0 0 14px ${currentDir.accent}55, 0 8px 24px rgba(0,0,0,0.35)`,
             padding: 0,
           }}
         >
           <span
             style={{
-              width: 12,
-              height: 12,
-              borderRadius: 99,
-              background: currentDir.accent,
-              boxShadow: `0 0 10px ${currentDir.accent}AA`,
-              display: 'block',
-              flexShrink: 0,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: currentDir.accent,
+              lineHeight: 1,
+              userSelect: 'none',
             }}
-          />
+          >
+            {currentDir.short.slice(0, 2)}
+          </span>
         </button>
       ) : (
         // Expanded pill (desktop default; mobile when not collapsed)
@@ -333,7 +278,7 @@ export function LiveShell() {
                   <button
                     key={dir.id}
                     data-toggle-direction={dir.id}
-                    onClick={() => setDirection(dir.id)}
+                    onClick={() => { setDirection(dir.id); setPillCollapsed(true) }}
                     title={`${dir.full} (press ${keyNum})`}
                     aria-label={`Switch to ${dir.full}`}
                     style={{
