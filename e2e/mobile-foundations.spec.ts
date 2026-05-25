@@ -19,62 +19,58 @@ async function scrollTo(page: import('@playwright/test').Page, scrollTop: number
 
 test.describe('Mode-pill mobile behavior (Task #43)', () => {
 
-  test('pill is visible at mobile viewport; shows active-direction label', async ({ page }) => {
+  test('pill starts collapsed on mobile and shows active-direction label when expanded', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/#terminal');
+    // Pill starts collapsed — collapsed marker visible, full pill not yet rendered
+    await expect(page.locator('[data-pill-collapsed]')).toBeVisible();
+    await expect(page.locator('[data-pill]')).toHaveCount(0);
+    // Tap to expand
+    await page.locator('[data-pill-collapsed]').click();
     await expect(page.locator('[data-pill]')).toBeVisible();
-    await expect(page.locator('[data-pill-label]')).toBeVisible();
     await expect(page.locator('[data-pill-label]')).toContainText('Terminal');
   });
 
-  test('pill collapses to single dot after scrolling past 240px', async ({ page }) => {
+  test('pill starts collapsed on mobile — no scroll required', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/#terminal');
-    // Wait for lazy-loaded Terminal content so the scroller has real overflow
     await expect(page.locator('[data-direction="terminal"]')).toBeVisible();
-
-    // Full pill visible before scroll
-    await expect(page.locator('[data-pill]')).toBeVisible();
-    await expect(page.locator('[data-pill-collapsed]')).toHaveCount(0);
-
-    // Scroll past 240px → should collapse
-    await scrollTo(page, 300);
-
+    // Pill is collapsed immediately without any user action
     await expect(page.locator('[data-pill-collapsed]')).toBeVisible();
     await expect(page.locator('[data-pill]')).toHaveCount(0);
   });
 
-  test('collapsed dot expands the pill on tap', async ({ page }) => {
+  test('collapsed marker expands the pill on tap', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/#terminal');
     await expect(page.locator('[data-direction="terminal"]')).toBeVisible();
-
-    await scrollTo(page, 300);
+    // Pill starts collapsed — no scroll needed
     await expect(page.locator('[data-pill-collapsed]')).toBeVisible();
-
     await page.locator('[data-pill-collapsed]').click();
     await expect(page.locator('[data-pill]')).toBeVisible();
     await expect(page.locator('[data-pill-collapsed]')).toHaveCount(0);
   });
 
-  test('pill re-expands on scroll up', async ({ page }) => {
+  test('selecting a direction collapses the pill back to the marker', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/#terminal');
     await expect(page.locator('[data-direction="terminal"]')).toBeVisible();
-
-    // Collapse
-    await scrollTo(page, 300);
-    await expect(page.locator('[data-pill-collapsed]')).toBeVisible();
-
-    // Scroll back up
-    await scrollTo(page, 100);
+    // Expand
+    await page.locator('[data-pill-collapsed]').click();
     await expect(page.locator('[data-pill]')).toBeVisible();
-    await expect(page.locator('[data-pill-collapsed]')).toHaveCount(0);
+    // Pick a direction
+    await page.locator('[data-toggle-direction="console"]').click();
+    // Pill collapses back to marker
+    await expect(page.locator('[data-pill-collapsed]')).toBeVisible();
+    await expect(page.locator('[data-pill]')).toHaveCount(0);
   });
 
   test('pill dot buttons have 44px hit area on mobile', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/#terminal');
+    // Expand the pill first (starts collapsed)
+    await page.locator('[data-pill-collapsed]').click();
+    await expect(page.locator('[data-pill]')).toBeVisible();
 
     const btn = page.locator('[data-toggle-direction="console"]');
     await expect(btn).toBeVisible();
