@@ -1,4 +1,4 @@
-import type { Puzzle } from './traceLogic';
+﻿import type { Puzzle } from './traceLogic';
 
 // Seed pool. Each entry's `par` is the true shortest path over WORD_SET and is
 // asserted by e2e/trace-puzzles.spec.ts (CI gate, spec §4). Grow over time;
@@ -11,5 +11,6 @@ export const PUZZLES: Puzzle[] = [
   { id: 5, start: 'breed', target: 'bland', par: 3 },  // breed→bleed→blend→bland
   { id: 6, start: 'groan', target: 'brain', par: 3 },  // groan→groin→grain→brain
   { id: 7, start: 'shore', target: 'stale', par: 3 },  // shore→store→stare→stale
-  { id: 8, start: 'grind', target: 'bland', par: 3 },  // grind→grand→brand→bland
+  { id: 8, start: 'grind', target: 'braid', par: 3 },  // grind→grand→brand→braid
+  { id: 9, start: 'catch', target: 'harsh', par: 4 },  // catch→match→march→marsh→harsh
 ];
