@@ -71,12 +71,15 @@ export function Cartridge({
         if (!selected) e.currentTarget.style.transform = 'translate(0,0)'
       }}
       onPointerDown={isDesktop ? undefined : e => {
-        e.currentTarget.style.background = ARC.bgLight
+        e.currentTarget.style.background = '#FFE63622'
       }}
       onPointerUp={isDesktop ? undefined : e => {
         e.currentTarget.style.background = '#000'
       }}
       onPointerLeave={isDesktop ? undefined : e => {
+        e.currentTarget.style.background = '#000'
+      }}
+      onPointerCancel={isDesktop ? undefined : e => {
         e.currentTarget.style.background = '#000'
       }}
     >
@@ -123,7 +126,7 @@ export function Cartridge({
             <CartArt id={p.id} c={c} />
           </div>
           <div style={{ background: '#000', padding: '8px 10px', borderTop: `2px solid ${c}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ ...px, fontSize: 10, color: c, textShadow: `0 0 6px ${c}88`, letterSpacing: '0.04em', lineHeight: 1.2 }}>
+            <span style={{ ...px, fontSize: 14, color: c, textShadow: `0 0 6px ${c}88`, letterSpacing: '0.04em', lineHeight: 1.2 }}>
               {p.name.toUpperCase()}
             </span>
             <span style={{ ...px, fontSize: 8, color: statusColor, flexShrink: 0, marginLeft: 8 }}>● {statusLabel.toUpperCase()}</span>
