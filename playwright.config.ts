@@ -19,6 +19,10 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'mobile-iphone-14',
+      use: { ...devices['iPhone 14'] }, // hasTouch + isMobile + pointer:coarse
+    },
   ],
 
   webServer: process.env.TEST_URL
