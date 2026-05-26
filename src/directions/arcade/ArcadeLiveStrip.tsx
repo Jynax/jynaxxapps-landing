@@ -14,12 +14,14 @@ const mono = { fontFamily: 'var(--font-vt)' }
 export function ArcadeLiveStrip({
   feed,
   blink,
-  coin,
+  coinBlink,
+  gameOpen,
   reduced,
 }: {
   feed: LiveFeed
   blink: boolean
-  coin: boolean
+  coinBlink: boolean
+  gameOpen?: boolean
   reduced: boolean
 }) {
   const [open, setOpen] = useState(false)
@@ -37,6 +39,9 @@ export function ArcadeLiveStrip({
       return ''
     }
   }
+
+  // Suppress unused-var warning — gameOpen is consumed by #74's hide-during-game gate
+  void gameOpen
 
   return (
     <div
@@ -104,7 +109,7 @@ export function ArcadeLiveStrip({
               <p style={{ ...mono, fontSize: 24, lineHeight: 1.3, margin: 0, color: ARC.ink, textWrap: 'pretty' }}>
                 {feed.activity}
                 {feed.project && <span style={{ color: ARC.neon3 }}>{` · cart: ${feed.project.name.toLowerCase()}`}</span>}
-                &nbsp;<span style={{ color: ARC.neon3, opacity: coin ? 1 : 0.3 }}>★</span>
+                &nbsp;<span style={{ color: ARC.neon3, opacity: coinBlink ? 1 : 0.3 }}>★</span>
               </p>
               <div style={{ ...px, fontSize: 8, color: ARC.dim, letterSpacing: '0.18em', marginTop: 18 }}>
                 LIVE FEED · {feed.total > 1 ? 'ROTATING SET' : 'SINGLE ENTRY'} · SAVE SLOT 87 · AUTOSAVED
@@ -131,4 +136,11 @@ export function ArcadeLiveStrip({
       )}
     </div>
   )
+}
+
+// Piece 5 — #73↔#74 contract: placeholder named export so Arcade.tsx compiles
+// with its mobile scoreboard mount-point before #74 ships the real implementation.
+// #74 will replace the body of this function with the 2×2 scoreboard layout.
+export function ArcadeScoreboard() {
+  return null
 }

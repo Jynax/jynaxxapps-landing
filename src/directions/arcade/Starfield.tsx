@@ -31,6 +31,7 @@ export function Starfield() {
 
   return (
     <svg
+      data-starfield
       aria-hidden="true"
       style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}
       preserveAspectRatio="none"
