@@ -122,7 +122,7 @@ export function Cartridge({
         </>
       ) : (
         <>
-          <div style={{ background: `linear-gradient(135deg, ${c}55 0%, #000 60%)`, height: 70, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ background: `linear-gradient(135deg, ${c}55 0%, #000 60%)`, position: 'relative' }}>
             <CartArt id={p.id} c={c} />
           </div>
           <div style={{ background: '#000', padding: '8px 10px', borderTop: `2px solid ${c}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
