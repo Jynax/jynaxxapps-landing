@@ -217,9 +217,15 @@ export default function Arcade() {
             <br />
             <span style={{ color: ARC.neon4, textShadow: `3px 0 0 ${ARC.neon1}, -3px 0 0 ${ARC.neon2}, 0 0 14px ${ARC.neon4}AA` }}>APPS</span>
           </h1>
-          <div style={{ ...mono, fontSize: 22, marginTop: 12, color: ARC.ink, opacity: 0.9 }}>
-            ━━━━━━ a workshop for digital machines ━━━━━━
-          </div>
+          {isDesktop ? (
+            <div style={{ ...mono, fontSize: 22, marginTop: 12, color: ARC.ink, opacity: 0.9 }}>
+              ━━━━━━ a workshop for digital machines ━━━━━━
+            </div>
+          ) : (
+            <div style={{ ...mono, fontSize: 16, marginTop: 12, color: ARC.ink, opacity: 0.9, textAlign: 'center' }}>
+              a workshop for digital machines
+            </div>
+          )}
           {/* Piece 3: INSERT COIN trigger — full-width 64px on mobile with yellow border */}
           <button
             type="button"
@@ -238,11 +244,12 @@ export default function Arcade() {
               letterSpacing: '0.2em',
               background: !isDesktop && insertActive ? '#FFE63622' : 'transparent',
               border: isDesktop ? 'none' : `2px solid ${ARC.neon3}`,
-              padding: isDesktop ? 4 : '0 16px',
+              padding: isDesktop ? 4 : '14px 32px',
               cursor: 'pointer',
-              width: isDesktop ? undefined : '100%',
-              height: isDesktop ? undefined : 64,
-              display: isDesktop ? undefined : 'flex',
+              width: isDesktop ? undefined : 'auto',
+              minWidth: isDesktop ? undefined : 220,
+              height: isDesktop ? undefined : 'auto',
+              display: isDesktop ? undefined : 'inline-flex',
               alignItems: isDesktop ? undefined : 'center',
               justifyContent: isDesktop ? undefined : 'center',
             }}
