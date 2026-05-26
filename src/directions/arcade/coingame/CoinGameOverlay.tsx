@@ -179,7 +179,7 @@ export function CoinGameOverlay({
               padding: '0 56px',
             }}
           >
-            <div style={{ ...mono, fontSize: 11, color: ARC.neon4, letterSpacing: '0.18em' }}>
+            <div style={{ ...mono, fontSize: 11, color: ARC.neon1, letterSpacing: '0.18em' }}>
               ★ JYNAXX ARCADE ★
             </div>
             <div style={{ ...px, fontSize: 22, color: ARC.neon3, marginTop: 4, textShadow: `0 0 10px ${ARC.neon3}88` }}>
