@@ -1,3 +1,4 @@
+import { useMediaQuery } from '../parts/useMediaQuery'
 import { ARC, POWERUP_ACCENTS, accentAt } from './tokens'
 
 const px = { fontFamily: 'var(--font-pixel)' }
@@ -5,14 +6,15 @@ const mono = { fontFamily: 'var(--font-vt)' }
 
 // Manifesto line as an arcade "power-up" card (reference `PowerUp`).
 export function PowerUp({ text, index }: { text: string; index: number }) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const c = accentAt(POWERUP_ACCENTS, index)
   return (
     <div
       data-arcade-powerup
       style={{
         border: `2px solid ${c}`,
-        padding: '14px 12px',
-        minHeight: 140,
+        padding: isDesktop ? '14px 12px' : '10px 12px',
+        minHeight: isDesktop ? 140 : undefined,
         position: 'relative',
         background: '#0006',
       }}
