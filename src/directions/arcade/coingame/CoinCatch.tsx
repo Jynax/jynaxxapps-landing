@@ -7,27 +7,29 @@
 // Under reduced motion: discrete tick-step variant (fully playable, no rAF).
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ARC } from '../tokens'
-import { PotOfGold, WIDTH as POT_W, HEIGHT as POT_H } from './PotOfGold'
+import { PotOfGold, WIDTH as POT_W_DEFAULT, HEIGHT as POT_H_DEFAULT } from './PotOfGold'
+import { useMediaQuery } from '../../parts/useMediaQuery'
 
 const FIELD_W = 440
 const FIELD_H = 320
 const COIN = 22
 const PLAYER_STEP = 34
-const GLIDE_PX_PER_MS = 0.30 // held-key glide speed (px/ms)
+const GLIDE_PX_PER_MS = 0.30 // held-key / pad glide speed (px/ms)
 const MAX_MISSES = 3 // playtest-tunable miss budget
 
 // Smooth (non-reduced) ramp tuning — playtest-tunable
 const FALL_START     = 0.10   // px/ms at game start
-const FALL_CAP       = 0.50   // px/ms at full ramp
+const FALL_CAP       = 0.50   // px/ms at full ramp (base; coarse softened ×0.85)
 const SPAWN_START_MS = 1200   // spawn interval at game start (ms)
 const SPAWN_MIN_MS   = 300    // spawn interval at full ramp (ms)
 const RAMP_WINDOW_MS = 25_000 // ms to interpolate from start to cap
 
 // Discrete (reduced-motion) ramp tuning — playtest-tunable
-const TICK_MS            = 100  // base interval; small for smooth ramp
-const COIN_STEP_START    = 25   // px/tick at game start
-const COIN_STEP_CAP      = 65   // px/tick at full ramp
+const TICK_MS             = 100  // base interval; small for smooth ramp
+const COIN_STEP_START     = 25   // px/tick at game start
+const COIN_STEP_CAP       = 65   // px/tick at full ramp (base; coarse softened ×0.85)
 const SPAWN_TICK_START_MS = 1200 // ms between spawns at game start
 const SPAWN_TICK_MIN_MS   = 300  // ms between spawns at full ramp
 
@@ -48,6 +50,17 @@ export function CoinCatch({
   reduced: boolean
   onGameOver: (score: number) => void
 }) {
+  // Separate from isDesktop — gates touch drag, pads, paddle size, speed cap.
+  const isCoarsePointer = useMediaQuery('(pointer: coarse)')
+
+  // Paddle dimensions derived from pointer type; drives collision math.
+  const POT_W = isCoarsePointer ? 64 : POT_W_DEFAULT  // 64 touch / 60 mouse
+  const POT_H = isCoarsePointer ? 60 : POT_H_DEFAULT  // 60 touch / 68 mouse
+
+  // Speed-cap softening on coarse pointer (applied at cap, not start).
+  const fallCapEff     = isCoarsePointer ? FALL_CAP * 0.85 : FALL_CAP
+  const coinStepCapEff = isCoarsePointer ? COIN_STEP_CAP * 0.85 : COIN_STEP_CAP
+
   const [playerX, setPlayerX] = useState((FIELD_W - POT_W) / 2)
   const [coins, setCoins] = useState<Coin[]>([])
   const [score, setScore] = useState(0)
@@ -65,11 +78,25 @@ export function CoinCatch({
   const onGameOverRef = useRef(onGameOver)
   const fieldRef = useRef<HTMLDivElement>(null)
   const keysHeldRef = useRef(new Set<string>())
+  // Active pad direction: -1 = left held, 0 = none, 1 = right held.
+  const padDirRef = useRef<-1 | 0 | 1>(0)
+  // Active drag touch identifier — prevents a pad thumb hijacking drag X.
+  const dragIdRef = useRef<number | null>(null)
+
+  // Portal target element for ◀/▶ pads (resolved after mount).
+  const [padSlotEl, setPadSlotEl] = useState<Element | null>(null)
+
   useEffect(() => {
     onGameOverRef.current = onGameOver
   })
 
   const playerTopY = FIELD_H - POT_H
+
+  // Resolve [data-coingame-pad-slot] for portal rendering (#76 contract).
+  useEffect(() => {
+    if (!isCoarsePointer) return
+    setPadSlotEl(document.querySelector('[data-coingame-pad-slot]'))
+  }, [isCoarsePointer])
 
   // Window-capture key handler. Capture phase ensures LiveShell's 1–4 switcher
   // never sees Arrow/A/D while the game is mounted. Escape bubbles (overlay closes).
@@ -108,11 +135,11 @@ export function CoinCatch({
       window.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('keyup', onKeyUp, true)
     }
-  }, [])
+  }, [isCoarsePointer]) // re-register when POT_W clamp changes
 
-  // Pointer-follow (non-reduced only). Centers the pot on the cursor X within the field.
+  // Pointer-follow (non-reduced + non-coarse only). Centers the pot on the cursor X.
   useEffect(() => {
-    if (reduced) return
+    if (reduced || isCoarsePointer) return
     const el = fieldRef.current
     if (!el) return
     const onPointerMove = (e: PointerEvent) => {
@@ -124,10 +151,64 @@ export function CoinCatch({
     }
     el.addEventListener('pointermove', onPointerMove)
     return () => el.removeEventListener('pointermove', onPointerMove)
-  }, [reduced])
+  }, [reduced, isCoarsePointer]) // POT_W covered transitively via isCoarsePointer
+
+  // Touch drag — coarse-pointer only. Attaches to [data-coingame-field].
+  // Tracks active touch by identifier so a thumb on a pad never hijacks drag X.
+  useEffect(() => {
+    if (!isCoarsePointer) return
+    const el = fieldRef.current
+    if (!el) return
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (dragIdRef.current !== null) return
+      const touch = e.changedTouches[0]
+      dragIdRef.current = touch.identifier
+      const rect = el.getBoundingClientRect()
+      const next = Math.max(0, Math.min(FIELD_W - POT_W, touch.clientX - rect.left - POT_W / 2))
+      playerXRef.current = next
+      setPlayerX(next)
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault() // suppress page scroll while dragging
+      if (dragIdRef.current === null) return
+      let found: Touch | null = null
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === dragIdRef.current) {
+          found = e.changedTouches[i]
+          break
+        }
+      }
+      if (!found) return
+      const rect = el.getBoundingClientRect()
+      const next = Math.max(0, Math.min(FIELD_W - POT_W, found.clientX - rect.left - POT_W / 2))
+      playerXRef.current = next
+      setPlayerX(next)
+    }
+    const onTouchEnd = (e: TouchEvent) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === dragIdRef.current) {
+          dragIdRef.current = null
+          break
+        }
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd)
+    el.addEventListener('touchcancel', onTouchEnd)
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [isCoarsePointer]) // POT_W covered transitively via isCoarsePointer
 
   // Game loop. Non-reduced: rAF with real dt. Reduced: small base interval
   // (TICK_MS) with spawn accumulator so both step size and spawn rate ramp.
+  // playerTopY in deps covers all isCoarsePointer-derived values transitively.
   useEffect(() => {
     finishedRef.current = false
 
@@ -175,13 +256,23 @@ export function CoinCatch({
       const id = setInterval(() => {
         elapsedRef.current += TICK_MS
         const t = elapsedRef.current / RAMP_WINDOW_MS
-        const coinStep      = lerp(COIN_STEP_START, COIN_STEP_CAP, t)
+        const coinStep      = lerp(COIN_STEP_START, coinStepCapEff, t)
         const spawnInterval = lerp(SPAWN_TICK_START_MS, SPAWN_TICK_MIN_MS, t)
 
         spawnAccRef.current += TICK_MS
         if (spawnAccRef.current >= spawnInterval) {
           spawnAccRef.current -= spawnInterval
           spawn()
+        }
+
+        // Pad glide in reduced-motion tick (same speed constant as smooth loop).
+        if (padDirRef.current !== 0) {
+          const next = Math.max(
+            0,
+            Math.min(FIELD_W - POT_W, playerXRef.current + padDirRef.current * GLIDE_PX_PER_MS * TICK_MS),
+          )
+          playerXRef.current = next
+          setPlayerX(next)
         }
 
         coinsRef.current = coinsRef.current.map(c => ({
@@ -208,7 +299,7 @@ export function CoinCatch({
       elapsedRef.current += dt
 
       const t = elapsedRef.current / RAMP_WINDOW_MS
-      const fallSpeed     = lerp(FALL_START, FALL_CAP, t)
+      const fallSpeed     = lerp(FALL_START, fallCapEff, t)
       const spawnInterval = lerp(SPAWN_START_MS, SPAWN_MIN_MS, t)
 
       spawnAccRef.current += dt
@@ -217,9 +308,17 @@ export function CoinCatch({
         spawn()
       }
 
-      // Held-key glide (continuous movement while key is held).
-      const leftHeld  = keysHeldRef.current.has('ArrowLeft')  || keysHeldRef.current.has('a') || keysHeldRef.current.has('A')
-      const rightHeld = keysHeldRef.current.has('ArrowRight') || keysHeldRef.current.has('d') || keysHeldRef.current.has('D')
+      // Held-key + pad glide (continuous movement while held or pad pressed).
+      const leftHeld  =
+        keysHeldRef.current.has('ArrowLeft') ||
+        keysHeldRef.current.has('a') ||
+        keysHeldRef.current.has('A') ||
+        padDirRef.current === -1
+      const rightHeld =
+        keysHeldRef.current.has('ArrowRight') ||
+        keysHeldRef.current.has('d') ||
+        keysHeldRef.current.has('D') ||
+        padDirRef.current === 1
       if (leftHeld || rightHeld) {
         const dir = (rightHeld ? 1 : 0) - (leftHeld ? 1 : 0)
         const next = Math.max(0, Math.min(FIELD_W - POT_W, playerXRef.current + dir * GLIDE_PX_PER_MS * dt))
@@ -257,81 +356,180 @@ export function CoinCatch({
       cancelAnimationFrame(raf)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [reduced, playerTopY])
+  }, [reduced, playerTopY]) // playerTopY covers all isCoarsePointer-derived values
 
   const livesLeft = MAX_MISSES - misses
 
   return (
-    <div
-      ref={fieldRef}
-      data-coingame-field
-      style={{
-        position: 'relative',
-        width: FIELD_W,
-        maxWidth: '90vw',
-        height: FIELD_H,
-        margin: '0 auto',
-        border: `2px solid ${ARC.neon2}66`,
-        background:
-          `radial-gradient(ellipse at 50% 0%, ${ARC.bgLight} 0%, ${ARC.bg} 70%)`,
-        overflow: 'hidden',
-        boxShadow: `inset 0 0 40px ${ARC.neon2}22`,
-      }}
-    >
-      {/* HUD: score + lives */}
+    <>
       <div
+        ref={fieldRef}
+        data-coingame-field
         style={{
-          position: 'absolute',
-          top: 8,
-          left: 10,
-          right: 10,
-          display: 'flex',
-          justifyContent: 'space-between',
-          ...px,
-          fontSize: 10,
-          letterSpacing: '0.12em',
-          color: ARC.dim,
-          zIndex: 2,
+          position: 'relative',
+          width: FIELD_W,
+          maxWidth: '90vw',
+          height: FIELD_H,
+          margin: '0 auto',
+          border: `2px solid ${ARC.neon2}66`,
+          background:
+            `radial-gradient(ellipse at 50% 0%, ${ARC.bgLight} 0%, ${ARC.bg} 70%)`,
+          overflow: 'hidden',
+          boxShadow: `inset 0 0 40px ${ARC.neon2}22`,
         }}
       >
-        <span data-coingame-score style={{ color: ARC.neon3 }}>
-          SCORE&nbsp;<span style={{ color: ARC.ink }}>{score}</span>
-        </span>
-        <span data-coingame-lives style={{ color: ARC.neon1 }}>
-          {'●'.repeat(Math.max(0, livesLeft))}{'○'.repeat(Math.min(misses, MAX_MISSES))}
-        </span>
-      </div>
-
-      {coins.map(c => (
+        {/* HUD: score + lives — position unchanged from desktop */}
         <div
-          key={c.id}
-          data-coingame-coin
-          aria-hidden="true"
           style={{
             position: 'absolute',
-            transform: `translate(${c.x}px, ${c.y}px)`,
-            width: COIN,
-            height: COIN,
-            borderRadius: '50%',
-            background: `radial-gradient(circle at 35% 30%, #FFF1A8 0%, ${ARC.neon3} 55%, #B8860B 100%)`,
-            boxShadow: `0 0 8px ${ARC.neon3}AA`,
+            top: 8,
+            left: 10,
+            right: 10,
+            display: 'flex',
+            justifyContent: 'space-between',
+            ...px,
+            fontSize: 10,
+            letterSpacing: '0.12em',
+            color: ARC.dim,
+            zIndex: 2,
           }}
-        />
-      ))}
+        >
+          <span data-coingame-score style={{ color: ARC.neon3 }}>
+            SCORE&nbsp;<span style={{ color: ARC.ink }}>{score}</span>
+          </span>
+          <span data-coingame-lives style={{ color: ARC.neon1 }}>
+            {'●'.repeat(Math.max(0, livesLeft))}{'○'.repeat(Math.min(misses, MAX_MISSES))}
+          </span>
+        </div>
 
-      <div
-        data-coingame-player
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: playerTopY,
-          transform: `translateX(${playerX}px)`,
-          width: POT_W,
-          height: POT_H,
-        }}
-      >
-        <PotOfGold />
+        {coins.map(c => (
+          <div
+            key={c.id}
+            data-coingame-coin
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              transform: `translate(${c.x}px, ${c.y}px)`,
+              width: COIN,
+              height: COIN,
+              borderRadius: '50%',
+              background: `radial-gradient(circle at 35% 30%, #FFF1A8 0%, ${ARC.neon3} 55%, #B8860B 100%)`,
+              boxShadow: `0 0 8px ${ARC.neon3}AA`,
+            }}
+          />
+        ))}
+
+        <div
+          data-coingame-player
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: playerTopY,
+            transform: `translateX(${playerX}px)`,
+            width: POT_W,
+            height: POT_H,
+          }}
+        >
+          <PotOfGold width={POT_W} height={POT_H} />
+        </div>
       </div>
-    </div>
+
+      {/* ◀ / ▶ pads — portal into [data-coingame-pad-slot] when on coarse pointer */}
+      {isCoarsePointer && padSlotEl && createPortal(
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 16px',
+            width: '100%',
+            boxSizing: 'border-box' as const,
+          }}
+        >
+          <button
+            type="button"
+            aria-label="Slide left"
+            onPointerDown={() => { padDirRef.current = -1 }}
+            onPointerUp={() => { if (padDirRef.current === -1) padDirRef.current = 0 }}
+            onPointerLeave={() => { if (padDirRef.current === -1) padDirRef.current = 0 }}
+            onPointerCancel={() => { if (padDirRef.current === -1) padDirRef.current = 0 }}
+            style={{
+              width: 72,
+              height: 72,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <div
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: ARC.bgLight,
+                border: `1px solid ${ARC.neon2}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                ...px,
+                fontSize: 20,
+                color: ARC.neon2,
+                userSelect: 'none' as const,
+                pointerEvents: 'none' as const,
+              }}
+            >
+              ◀
+            </div>
+          </button>
+
+          <button
+            type="button"
+            aria-label="Slide right"
+            onPointerDown={() => { padDirRef.current = 1 }}
+            onPointerUp={() => { if (padDirRef.current === 1) padDirRef.current = 0 }}
+            onPointerLeave={() => { if (padDirRef.current === 1) padDirRef.current = 0 }}
+            onPointerCancel={() => { if (padDirRef.current === 1) padDirRef.current = 0 }}
+            style={{
+              width: 72,
+              height: 72,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <div
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: ARC.bgLight,
+                border: `1px solid ${ARC.neon2}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                ...px,
+                fontSize: 20,
+                color: ARC.neon2,
+                userSelect: 'none' as const,
+                pointerEvents: 'none' as const,
+              }}
+            >
+              ▶
+            </div>
+          </button>
+        </div>,
+        padSlotEl,
+      )}
+    </>
   )
 }

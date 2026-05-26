@@ -17,13 +17,13 @@ const GOLD = ARC.neon3   // sun yellow
 const BASE = '#000000'
 const SHIN = '#FFFFFF'   // sparkle
 
-export function PotOfGold() {
+export function PotOfGold({ width = WIDTH, height = HEIGHT }: { width?: number; height?: number }) {
   return (
     <svg
       data-pot-of-gold
       viewBox="0 0 15 17"
-      width={WIDTH}
-      height={HEIGHT}
+      width={width}
+      height={height}
       shapeRendering="crispEdges"
       aria-hidden="true"
     >
