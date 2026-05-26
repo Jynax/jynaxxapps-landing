@@ -1,6 +1,7 @@
 import { JX_STATUS } from '../../data/jxData'
 import type { Project } from '../../types/jx'
 import { ARC, statusToNeon } from './tokens'
+import { useMediaQuery } from '../parts/useMediaQuery'
 
 const px = { fontFamily: 'var(--font-pixel)' }
 const mono = { fontFamily: 'var(--font-vt)' }
@@ -21,6 +22,10 @@ function DossierMeta({ k, v, color }: { k: string; v: string; color?: string }) 
 // in Arcade.tsx). Overrides the status-derived colour so the dossier border
 // matches the loaded cartridge exactly (Task #38). Falls back to
 // statusToNeon() when absent (e.g. idle state).
+//
+// Task #82: on mobile the dossier renders inline below the tapped cartridge
+// (Arcade.tsx controls visibility). Two-column layout collapses to single
+// column; STACK section moves below description.
 export function CartDossier({
   project,
   accent,
@@ -30,6 +35,8 @@ export function CartDossier({
   accent?: string
   onClose: () => void
 }) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+
   if (!project) {
     return (
       <div
@@ -81,17 +88,18 @@ export function CartDossier({
         padding: 0,
       }}
     >
+      {/* Header bar */}
       <div
         style={{
           background: `linear-gradient(90deg, ${c}33 0%, transparent 100%)`,
-          padding: '10px 18px',
+          padding: isDesktop ? '10px 18px' : '10px 14px',
           borderBottom: `2px solid ${c}66`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
       >
-        <span style={{ ...px, fontSize: 11, color: c, textShadow: `0 0 6px ${c}88`, letterSpacing: '0.16em' }}>
+        <span style={{ ...px, fontSize: isDesktop ? 11 : 9, color: c, textShadow: `0 0 6px ${c}88`, letterSpacing: '0.16em' }}>
           ▸ NOW LOADING / {project.name.toUpperCase()}
         </span>
         <button
@@ -114,13 +122,26 @@ export function CartDossier({
           × EJECT
         </button>
       </div>
-      <div style={{ padding: '20px 22px', display: 'grid', gridTemplateColumns: '1fr 200px', gap: 28, alignItems: 'start' }}>
+
+      {/* Body — 2-col on desktop, single-col on mobile */}
+      <div
+        style={{
+          padding: isDesktop ? '20px 22px' : '14px 14px',
+          display: 'grid',
+          gridTemplateColumns: isDesktop ? '1fr 200px' : '1fr',
+          gap: isDesktop ? 28 : 16,
+          alignItems: 'start',
+        }}
+      >
+        {/* Left / top: blurb + metadata */}
         <div>
-          <div style={{ ...mono, fontSize: 22, color: ARC.ink, lineHeight: 1.4, marginBottom: 16 }}>{project.blurb}</div>
+          <div style={{ ...mono, fontSize: isDesktop ? 22 : 17, color: ARC.ink, lineHeight: 1.4, marginBottom: 16 }}>
+            {project.blurb}
+          </div>
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)',
               gap: 14,
               paddingTop: 14,
               borderTop: `1px dashed ${c}55`,
@@ -132,7 +153,16 @@ export function CartDossier({
             <DossierMeta k="ADDRESS" v={project.slug} />
           </div>
         </div>
-        <div style={{ borderLeft: `1px dashed ${c}55`, paddingLeft: 22 }}>
+
+        {/* Right / bottom: STACK + LAUNCH */}
+        <div
+          style={{
+            borderLeft: isDesktop ? `1px dashed ${c}55` : undefined,
+            borderTop: isDesktop ? undefined : `1px dashed ${c}55`,
+            paddingLeft: isDesktop ? 22 : undefined,
+            paddingTop: isDesktop ? undefined : 16,
+          }}
+        >
           <div style={{ ...px, fontSize: 9, color: ARC.dim, letterSpacing: '0.18em', marginBottom: 10 }}>STACK</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
             {project.stack.map(s => (

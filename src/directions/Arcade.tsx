@@ -18,7 +18,7 @@
 // `reduced` gate (#24 pattern). CSS transitions/animations are covered by the
 // global tokens.css reduced-motion rule.
 
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { JX_PROJECTS, JX_MANIFESTO } from '../data/jxData'
 import { useBlink } from './parts/useBlink'
 import { useReducedMotion } from './parts/useReducedMotion'
@@ -305,7 +305,8 @@ export default function Arcade() {
 
         {/* SELECT YOUR CARTRIDGE — screen above, carts below */}
         <div style={{ marginTop: 40 }}>
-          <CartDossier project={loadedPublic} accent={cartAccent} onClose={() => setSelectedId(null)} />
+          {/* Desktop: always-visible "screen" above grid. Mobile: hidden — dossier renders inline below tapped cart (Task #82). */}
+          {isDesktop && <CartDossier project={loadedPublic} accent={cartAccent} onClose={() => setSelectedId(null)} />}
 
           {/* Piece 2: section label — 14px desktop, 11px mobile */}
           <div
@@ -331,13 +332,22 @@ export default function Arcade() {
             }}
           >
             {publicProjects.map((p, i) => (
-              <Cartridge
-                key={p.id}
-                project={p}
-                accent={accentAt(CART_ACCENTS, i)}
-                selected={selectedId === p.id}
-                onSelect={() => select(p.id)}
-              />
+              <Fragment key={p.id}>
+                <Cartridge
+                  project={p}
+                  accent={accentAt(CART_ACCENTS, i)}
+                  selected={selectedId === p.id}
+                  onSelect={() => select(p.id)}
+                />
+                {/* Mobile inline dossier — expands directly below tapped cart (Task #82) */}
+                {!isDesktop && selectedId === p.id && (
+                  <CartDossier
+                    project={p}
+                    accent={accentAt(CART_ACCENTS, i)}
+                    onClose={() => setSelectedId(null)}
+                  />
+                )}
+              </Fragment>
             ))}
           </div>
           {/* Piece 4: footer hint — 9px desktop, 10px mobile (pixel font) */}
