@@ -22,6 +22,7 @@ export default defineConfig({
     {
       name: 'mobile-iphone-14',
       use: { ...devices['iPhone 14'] }, // hasTouch + isMobile + pointer:coarse
+      testMatch: ['**/*-mobile.spec.ts'], // only specs written for mobile
     },
   ],
 
