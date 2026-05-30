@@ -33,7 +33,7 @@ export function CrtHeader({ isMobile = false }: CrtHeaderProps) {
       }}
     >
       <span style={{ textShadow: 'var(--term-glow)' }}>
-        {isMobile ? 'JYNAXX-OS · v2.6.0' : 'JYNAXX-OS v2.6.0 / phosphor terminal'}
+        {isMobile ? 'JYNAXX-OS · v2.6.0' : 'JYNAXX-OS v2.6.0 / phosphor tech'}
       </span>
       <span style={{ whiteSpace: 'nowrap' }}>
         {isMobile ? 'tty1 · ▮ amber' : 'tty1 · 80×40 · ▮ amber'}

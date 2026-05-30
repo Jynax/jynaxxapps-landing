@@ -9,6 +9,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { JX_PROJECTS, JX_FOOTER } from '../data/jxData'
+import { JynaxxWordmark } from '../components/brand/Wordmark'
 import { Prompt } from './parts/Prompt'
 import { LiveNow } from './terminal/LiveNow'
 import { BootLine } from './parts/BootLine'
@@ -305,30 +306,47 @@ export default function Terminal() {
           <CursorPrompt />
         </div>
 
-        {/* 12 — footer (display only; hidden on mobile — tail-strip replaces it per §M.8) */}
-        {!isMobile && (
-          <footer
+        {/* 12 — footer */}
+        <footer
+          style={{
+            marginTop: 40,
+            paddingTop: 18,
+            borderTop: '1px solid rgba(244,185,66,0.14)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            letterSpacing: '0.08em',
+            color: 'var(--term-fg-dim)',
+          }}
+        >
+          <div style={{ marginBottom: 14 }}>
+            <JynaxxWordmark size={18} />
+          </div>
+          {!isMobile && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 16,
+                marginBottom: 8,
+              }}
+            >
+              <span>uptime 2y 134d · F1 help · F2 ls · F10 quit</span>
+            </div>
+          )}
+          <div
             style={{
-              marginTop: 40,
-              paddingTop: 18,
-              borderTop: '1px solid rgba(244,185,66,0.14)',
               display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: 16,
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              letterSpacing: '0.08em',
-              color: 'var(--term-fg-dim)',
+              gap: isMobile ? 4 : 16,
             }}
           >
-            <span>uptime 2y 134d · F1 help · F2 ls · F10 quit</span>
             <span>{JX_FOOTER.built}</span>
-            <span>
-              {JX_FOOTER.copyright} · {JX_FOOTER.made}
-            </span>
-          </footer>
-        )}
+            <span>{JX_FOOTER.copyright} · {JX_FOOTER.made}</span>
+          </div>
+        </footer>
       </div>
 
       {traceOpen && <TraceOverlay onClose={() => setTraceOpen(false)} />}
