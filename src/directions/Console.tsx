@@ -21,6 +21,7 @@
 
 import { useState } from 'react'
 import { JX_PROJECTS, JX_MANIFESTO, JX_CONTACT, JX_FOOTER } from '../data/jxData'
+import { JynaxxWordmark } from '../components/brand/ConsoleWordmark'
 import { useMediaQuery } from './parts/useMediaQuery'
 import { SectionHeader } from './parts/SectionHeader'
 import { HudBar, HudCounters } from './console/HudBar'
@@ -249,27 +250,30 @@ export default function Console() {
           </div>
         </div>
 
-        {/* 8 — Footer (display only) */}
+        {/* 8 — Footer — standard brand footer */}
         <footer
           style={{
-            padding: isDesktop ? '32px 48px' : '32px 16px',
+            padding: isDesktop ? '40px 48px 32px' : '40px 16px 32px',
             borderTop: `1px solid ${CON.line}`,
-            display: 'flex',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 16,
-            ...mono,
-            fontSize: 10,
-            color: CON.dim,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
+            textAlign: 'center',
           }}
         >
-          <span>{JX_FOOTER.copyright}</span>
-          <span>
-            <span style={{ color: CON.cyan }}>◇</span> {JX_FOOTER.built}
-          </span>
-          <span>v0.4.0 · {JX_FOOTER.made}</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <JynaxxWordmark size={18} glow={false} />
+          </div>
+          <div style={{ ...mono, fontSize: 13, color: CON.dim, lineHeight: 2.2, marginBottom: 16 }}>
+            <div>jynaxx@gmail.com</div>
+            <div>github.com/Jynax</div>
+            <div>@mrchartrand.bsky.social</div>
+          </div>
+          <div style={{ ...mono, fontSize: 12, color: CON.dim, lineHeight: 2 }}>
+            <div>{JX_FOOTER.copyright}</div>
+            <div>{JX_FOOTER.built}</div>
+            <div>{JX_FOOTER.made}</div>
+          </div>
+          <div style={{ ...mono, fontSize: 11, color: CON.cyan, marginTop: 16, letterSpacing: '0.15em' }}>
+            {'◇ mission ongoing · no exit conditions'}
+          </div>
         </footer>
       </div>
     </section>

@@ -97,6 +97,40 @@
   --con-lavender:  #A78BFA;
   --con-sage:      #8BC890;
 
+  /* Round-7 additions */
+  --con-bg-2:       #0A0F13;
+  --con-panel:      #141C23;
+  --con-panel-2:    #1A2530;
+  --con-panel-sunk: #0B1014;
+  --con-bracket:    rgba(108, 224, 212, 0.55);
+  --con-cyan-deep:  #3FA89E;
+  --con-cyan-soft:  rgba(108, 224, 212, 0.12);
+  --con-amber-deep: #B8923F;
+  --con-acc-1: #6CE0D4;
+  --con-acc-2: #E8C56B;
+  --con-acc-3: #E07C5A;
+  --con-acc-4: #A78BFA;
+  --con-acc-5: #8BC890;
+  --con-font-display:  "Space Grotesk", "Geist", system-ui, sans-serif;
+  --con-font-sans:     "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --con-font-mono:     "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --con-font-wordmark: "Geist", system-ui, sans-serif;
+  --con-radius-sm:     0px;
+  --con-radius-md:     0px;
+  --con-radius-pill:   999px;
+  --con-shadow-open:   0 8px 32px rgba(0,0,0,0.32);
+  --con-glow-cyan:     0 0 14px rgba(108,224,212,0.30);
+  --con-grid-size:     48px;
+  --con-grid-line:     rgba(42, 58, 69, 0.55);
+  --con-grid:          linear-gradient(var(--con-grid-line) 1px, transparent 1px),
+                       linear-gradient(90deg, var(--con-grid-line) 1px, transparent 1px);
+  --con-scanlines:     repeating-linear-gradient(
+                         0deg, transparent 0, transparent 3px,
+                         rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 4px);
+  --con-motion-fast:   .12s;
+  --con-motion-mid:    .2s;
+  --con-ease:          cubic-bezier(.2, .7, .3, 1);
+
   /* ─────────────────────────────────────────────────────────────────
    * JOURNAL — Direction 01 (parked; still reachable at #journal)
    * Two themes (dark/light), default dark.
