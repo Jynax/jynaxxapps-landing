@@ -34,9 +34,11 @@ import { PowerUp } from './arcade/PowerUp'
 import { ArcadeLiveStrip, ArcadeScoreboard } from './arcade/ArcadeLiveStrip'
 import { CoinGameOverlay } from './arcade/coingame/CoinGameOverlay'
 import { ARCADE_GAMES } from './arcade/coingame/games'
+import { JynaxxAppsLockup, JynaxxWordmark } from '../components/brand/ArcadeWordmark'
 
-const px = { fontFamily: 'var(--font-pixel)' }
-const mono = { fontFamily: 'var(--font-vt)' }
+const px   = { fontFamily: 'var(--font-pixel)' }
+const mono = { fontFamily: 'var(--font-mono)' }
+const sans = { fontFamily: 'var(--font-sans)' }
 
 const publicProjects = JX_PROJECTS.filter(p => p.group === 'public')
 const workshopProjects = JX_PROJECTS.filter(p => p.group === 'workshop')
@@ -201,21 +203,9 @@ export default function Arcade() {
           >
             ★ PRESS START TO BUILD ★
           </div>
-          {/* JYNAXX / APPS wordmark — 56 on desktop, 28 on mobile */}
-          <h1
-            style={{
-              ...px,
-              fontSize: isDesktop ? 56 : 28,
-              lineHeight: 1.05,
-              margin: 0,
-              color: ARC.neon3,
-              textShadow: `3px 0 0 ${ARC.neon1}, -3px 0 0 ${ARC.neon2}, 0 0 14px ${ARC.neon3}AA, 0 0 24px ${ARC.neon3}55`,
-              letterSpacing: '0.06em',
-            }}
-          >
-            JYNAXX
-            <br />
-            <span style={{ color: ARC.neon4, textShadow: `3px 0 0 ${ARC.neon1}, -3px 0 0 ${ARC.neon2}, 0 0 14px ${ARC.neon4}AA` }}>APPS</span>
+          {/* Round-7 wordmark — replaces the Press Start 2P pixel slab (design-spec.md § 3) */}
+          <h1 style={{ margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
+            <JynaxxAppsLockup size={isDesktop ? 64 : 36} glow />
           </h1>
           {isDesktop ? (
             <div style={{ ...mono, fontSize: 22, marginTop: 12, color: ARC.ink, opacity: 0.9 }}>
@@ -279,7 +269,7 @@ export default function Arcade() {
           >
             <PlayerSprite />
             <div>
-              <p style={{ ...mono, fontSize: 22, lineHeight: 1.35, margin: 0, color: ARC.ink }}>
+              <p style={{ ...sans, fontSize: 18, lineHeight: 1.5, margin: 0, color: ARC.ink }}>
                 JYNAXX is the curious, mischievous half of <span style={{ color: ARC.neon3 }}>michael chartrand</span>. likes building,
                 breaking, and seeing what&apos;s possible. dislikes todo apps without opinions.
               </p>
@@ -411,27 +401,31 @@ export default function Arcade() {
           </div>
         </div>
 
-        {/* Footer credits */}
+        {/* Standard footer (design-spec.md § 7) */}
         <div
           style={{
             marginTop: 56,
-            padding: '24px 0 0',
+            padding: '32px 0 16px',
             borderTop: `2px solid ${ARC.neon2}55`,
-            ...px,
-            fontSize: 9,
-            color: ARC.dim,
-            display: 'flex',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 12,
-            letterSpacing: '0.15em',
+            textAlign: 'center',
           }}
         >
-          <span>© 2024 — 2026 JYNAXX</span>
-          <span style={{ color: ARC.neon3 }}>MADE IN CANADA</span>
-          <span>
-            GAME OVER? <span style={{ color: ARC.neon1, opacity: blink ? 1 : 0.2 }}>NEVER</span>
-          </span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <JynaxxWordmark size={18} glow={false} />
+          </div>
+          <div style={{ ...mono, fontSize: 13, color: ARC.dim, lineHeight: 2.2, marginBottom: 16 }}>
+            <div>jynaxx@gmail.com</div>
+            <div>github.com/Jynax</div>
+            <div>@mrchartrand.bsky.social</div>
+          </div>
+          <div style={{ ...mono, fontSize: 12, color: ARC.dim, lineHeight: 2 }}>
+            <div>{'© 2024–2026 jynaxx · all rights reversed'}</div>
+            <div>{'built with claude · cursor · curiosity'}</div>
+            <div>made in canada</div>
+          </div>
+          <div style={{ ...px, fontSize: 9, color: ARC.neon1, marginTop: 16, letterSpacing: '0.15em', opacity: blink ? 1 : 0.2 }}>
+            GAME OVER? NEVER
+          </div>
         </div>
       </div>
 

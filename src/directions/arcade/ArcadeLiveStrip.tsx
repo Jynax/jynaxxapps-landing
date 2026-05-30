@@ -5,8 +5,8 @@ import { ARC, ACCENT_VIOLET, fmt } from './tokens'
 import { ArcadePlayerScene } from './ArcadePlayerScene'
 import { useStats } from './useStats'
 
-const px = { fontFamily: 'var(--font-pixel)' }
-const mono = { fontFamily: 'var(--font-vt)' }
+const px   = { fontFamily: 'var(--font-pixel)' }
+const mono = { fontFamily: 'var(--font-mono)' }
 
 function updatedLabel(iso: string): string {
   try {
