@@ -28,7 +28,7 @@ test.describe('Mode-pill mobile behavior (Task #43)', () => {
     // Tap to expand
     await page.locator('[data-pill-collapsed]').click();
     await expect(page.locator('[data-pill]')).toBeVisible();
-    await expect(page.locator('[data-pill-label]')).toContainText('Terminal');
+    await expect(page.locator('[data-pill-label]')).toContainText('Tech');
   });
 
   test('pill starts collapsed on mobile — no scroll required', async ({ page }) => {
