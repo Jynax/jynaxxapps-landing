@@ -38,19 +38,47 @@
   --status-soon:             #8A7E6E;
 
   /* ─────────────────────────────────────────────────────────────────
-   * TERMINAL — Direction 02
+   * TECH — Direction 02
    * ──────────────────────────────────────────────────────────────── */
-  --term-bg:           #0A0805;
-  --term-fg:           #F4B942;
-  --term-fg-bright:    #FFD56A;
-  --term-fg-dim:       #9A7426;
-  --term-accent:       #86C26B;  /* OK / username */
-  --term-warn:         #F4B942;
-  --term-danger:       #E07856;
-  --term-glow:         0 0 6px rgba(244, 185, 66, 0.4),
+  --tech-bg:           #0A0805;
+  --tech-fg:           #F4B942;
+  --tech-fg-bright:    #FFD56A;
+  --tech-fg-dim:       #9A7426;
+  --tech-ok:           #86C26B;  /* OK / username */
+  --tech-warn:         #F4B942;
+  --tech-fail:         #E07856;
+  --tech-glow:         0 0 6px rgba(244, 185, 66, 0.4),
                        0 0 14px rgba(244, 185, 66, 0.2);
-  --term-glow-strong:  0 0 12px rgba(244, 185, 66, 0.6),
+  --tech-glow-bright:  0 0 12px rgba(244, 185, 66, 0.6),
                        0 0 28px rgba(244, 185, 66, 0.33);
+  --tech-bg-2:      #050403;
+  --tech-panel:     rgba(0,0,0,0.40);
+  --tech-panel-2:   rgba(244,185,66,0.05);
+  --tech-fg-faint:  #5E4A1C;
+  --tech-line:      rgba(154,116,38,0.40);
+  --tech-line-soft: rgba(154,116,38,0.20);
+  --tech-x-front:   #F4B942;
+  --tech-x-echo:    #9A7426;
+  --tech-radius-sm: 2px;
+  --tech-radius-md: 3px;
+  --tech-scanlines: repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 3px);
+  --tech-vignette:  radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+  --tech-glow-ok:   0 0 6px rgba(134,194,107,0.45);
+  --tech-glow-fail: 0 0 6px rgba(224,120,86,0.45);
+  --tech-caret-period: 530ms;
+  --tech-boot-cadence: 80ms;
+  --tech-type-cadence: 55ms;
+
+  /* Backward-compat aliases — remove in a follow-up rename pass */
+  --term-bg:          var(--tech-bg);
+  --term-fg:          var(--tech-fg);
+  --term-fg-bright:   var(--tech-fg-bright);
+  --term-fg-dim:      var(--tech-fg-dim);
+  --term-accent:      var(--tech-ok);
+  --term-warn:        var(--tech-warn);
+  --term-danger:      var(--tech-fail);
+  --term-glow:        var(--tech-glow);
+  --term-glow-strong: var(--tech-glow-bright);
 
   /* ─────────────────────────────────────────────────────────────────
    * CONSOLE — Direction 04

@@ -13,7 +13,7 @@ interface Direction {
 }
 
 const DIRECTIONS: Direction[] = [
-  { id: 'terminal', short: 'Terminal',  full: 'Phosphor Terminal', accent: '#F4B942', featured: true  },
+  { id: 'terminal', short: 'Tech',  full: 'Phosphor Tech', accent: '#F4B942', featured: true  },
   { id: 'console',  short: 'Console',   full: 'Console',           accent: '#6CE0D4', featured: true  },
   { id: 'journal',  short: 'Journal',   full: 'Journal',           accent: '#F4B942', featured: false },
   { id: 'arcade',   short: 'Arcade',    full: 'Arcade',            accent: '#FFD93D', featured: true  },
@@ -147,7 +147,7 @@ export function LiveShell() {
       >
         <Suspense
           fallback={
-            <div style={{ background: 'var(--term-bg)', minHeight: '100%' }} />
+            <div style={{ background: 'var(--tech-bg)', minHeight: '100%' }} />
           }
         >
           <DirectionContent direction={direction} />
