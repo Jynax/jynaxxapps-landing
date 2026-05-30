@@ -1,8 +1,8 @@
 import { useMediaQuery } from '../parts/useMediaQuery'
 import { ARC, POWERUP_ACCENTS, accentAt } from './tokens'
 
-const px = { fontFamily: 'var(--font-pixel)' }
-const mono = { fontFamily: 'var(--font-vt)' }
+const px   = { fontFamily: 'var(--font-pixel)' }
+const sans = { fontFamily: 'var(--font-sans)' }
 
 // Manifesto line as an arcade "power-up" card (reference `PowerUp`).
 export function PowerUp({ text, index }: { text: string; index: number }) {
@@ -22,7 +22,7 @@ export function PowerUp({ text, index }: { text: string; index: number }) {
       <div style={{ ...px, fontSize: 10, color: c, marginBottom: 12, textShadow: `0 0 6px ${c}88` }}>
         ★{(index + 1).toString().padStart(2, '0')}
       </div>
-      <div style={{ ...mono, fontSize: 19, lineHeight: 1.15, color: ARC.ink }}>{text}</div>
+      <div style={{ ...sans, fontSize: 16, lineHeight: 1.4, color: ARC.ink }}>{text}</div>
     </div>
   )
 }

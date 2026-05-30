@@ -3,8 +3,9 @@ import type { Project } from '../../types/jx'
 import { ARC, statusToNeon } from './tokens'
 import { useMediaQuery } from '../parts/useMediaQuery'
 
-const px = { fontFamily: 'var(--font-pixel)' }
-const mono = { fontFamily: 'var(--font-vt)' }
+const px   = { fontFamily: 'var(--font-pixel)' }
+const mono = { fontFamily: 'var(--font-mono)' }
+const sans = { fontFamily: 'var(--font-sans)' }
 
 function DossierMeta({ k, v, color }: { k: string; v: string; color?: string }) {
   return (
@@ -67,7 +68,7 @@ export function CartDossier({
         <div style={{ ...px, fontSize: 14, color: ARC.neon2, letterSpacing: '0.2em', textShadow: `0 0 10px ${ARC.neon2}AA` }}>
           ◇ INSERT CARTRIDGE ◇
         </div>
-        <div style={{ ...mono, fontSize: 18, color: ARC.dim, letterSpacing: '0.06em' }}>
+        <div style={{ ...sans, fontSize: 16, color: ARC.dim }}>
           select a cart below to load its dossier
         </div>
       </div>
@@ -135,7 +136,7 @@ export function CartDossier({
       >
         {/* Left / top: blurb + metadata */}
         <div>
-          <div style={{ ...mono, fontSize: isDesktop ? 22 : 17, color: ARC.ink, lineHeight: 1.4, marginBottom: 16 }}>
+          <div style={{ ...sans, fontSize: isDesktop ? 18 : 15, color: ARC.ink, lineHeight: 1.5, marginBottom: 16 }}>
             {project.blurb}
           </div>
           <div

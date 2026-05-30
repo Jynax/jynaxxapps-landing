@@ -2,8 +2,9 @@ import { JX_STATUS } from '../../data/jxData'
 import type { Project } from '../../types/jx'
 import { ARC, statusToNeon } from './tokens'
 
-const px = { fontFamily: 'var(--font-pixel)' }
-const mono = { fontFamily: 'var(--font-vt)' }
+const px   = { fontFamily: 'var(--font-pixel)' }
+const mono = { fontFamily: 'var(--font-mono)' }
+const sans = { fontFamily: 'var(--font-sans)' }
 
 // Workshop ("B-Sides") compact row (reference `DevKitRow`, 2026-05-16
 // revision). Rendered as a <button> for keyboard access.
@@ -116,7 +117,7 @@ export function DevKitInline({ project, onClose }: { project: Project; onClose: 
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 22, alignItems: 'start' }}>
-        <div style={{ ...mono, fontSize: 18, color: ARC.ink, lineHeight: 1.4 }}>{project.blurb}</div>
+        <div style={{ ...sans, fontSize: 16, color: ARC.ink, lineHeight: 1.5 }}>{project.blurb}</div>
         <div style={{ borderLeft: `1px dashed ${c}55`, paddingLeft: 18 }}>
           <div style={{ ...px, fontSize: 8, color: ARC.dim, letterSpacing: '0.18em', marginBottom: 8 }}>STACK</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>

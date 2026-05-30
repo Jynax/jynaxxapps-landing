@@ -135,6 +135,27 @@
   --arc-ink:       #FFFFFF;
   --arc-dim:       #7B85C4;
 
+  /* Round-7 additions */
+  --arc-bg-2:      #050620;
+  --arc-line:      rgba(255, 61, 127, 0.30);
+  --arc-line-cool: rgba(61, 234, 255, 0.22);
+  --arc-glow-pink: 0 0 12px rgba(255, 61, 127, 0.55);
+  --arc-glow-cyan: 0 0 12px rgba(61, 234, 255, 0.45);
+  --arc-glow-sun:  0 0 12px rgba(255, 217, 61, 0.55);
+  --arc-font-sans:     "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --arc-font-mono:     "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --arc-font-pixel:    "Press Start 2P", "JetBrains Mono", monospace;
+  --arc-font-wordmark: "Geist", system-ui, sans-serif;
+  --arc-radius-sm:  3px;
+  --arc-radius-md:  6px;
+  --arc-radius-lg:  10px;
+  --arc-floor:     radial-gradient(ellipse at 30% 0%, #1A1F4C 0%, #0B0D2E 60%, #050620 100%);
+  --arc-scanlines: repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 3px);
+  --arc-motion-fast: .12s;
+  --arc-motion-mid:  .22s;
+  --arc-ease:        cubic-bezier(.2, .7, .3, 1);
+  --arc-blink:       420ms;
+
   /* ─────────────────────────────────────────────────────────────────
    * TYPOGRAPHY — shared font stacks
    * ──────────────────────────────────────────────────────────────── */
