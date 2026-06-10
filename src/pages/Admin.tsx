@@ -56,7 +56,8 @@ export function Admin() {
       if (!res.ok) {
         if (res.status === 403 || res.status === 401) {
           setSaveMsg('Session expired — please log in again')
-          logout()
+          // Delay logout so the message is visible before the panel unmounts.
+          setTimeout(logout, 1500)
           return
         }
         throw new Error('Save failed')

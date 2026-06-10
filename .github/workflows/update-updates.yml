@@ -4,6 +4,9 @@ on:
   repository_dispatch:
     types: [changelog-entry]
 
+permissions:
+  contents: read
+
 jobs:
   update-aggregate:
     runs-on: ubuntu-latest
@@ -12,12 +15,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: main
 
       - name: Prepend entry and trim
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const fs = require('fs');
@@ -29,6 +32,18 @@ jobs:
                 core.setFailed(`Missing required field: ${field}`);
                 return;
               }
+            }
+
+            let parsedUrl;
+            try {
+              parsedUrl = new URL(payload.projectUrl);
+            } catch {
+              core.setFailed(`Invalid projectUrl: ${payload.projectUrl}`);
+              return;
+            }
+            if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+              core.setFailed(`projectUrl must use http or https: ${payload.projectUrl}`);
+              return;
             }
 
             const validCategories = ['new', 'improved', 'updated'];

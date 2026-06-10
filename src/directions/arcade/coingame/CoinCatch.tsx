@@ -93,8 +93,11 @@ export function CoinCatch({
   const playerTopY = FIELD_H - POT_H
 
   // Resolve [data-coingame-pad-slot] for portal rendering (#76 contract).
+  // The slot element is rendered by the parent overlay before this child effect
+  // runs; one-shot resolve, no cascade.
   useEffect(() => {
     if (!isCoarsePointer) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPadSlotEl(document.querySelector('[data-coingame-pad-slot]'))
   }, [isCoarsePointer])
 
@@ -135,6 +138,7 @@ export function CoinCatch({
       window.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('keyup', onKeyUp, true)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCoarsePointer]) // re-register when POT_W clamp changes
 
   // Pointer-follow (non-reduced + non-coarse only). Centers the pot on the cursor X.
@@ -151,6 +155,7 @@ export function CoinCatch({
     }
     el.addEventListener('pointermove', onPointerMove)
     return () => el.removeEventListener('pointermove', onPointerMove)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced, isCoarsePointer]) // POT_W covered transitively via isCoarsePointer
 
   // Touch drag — coarse-pointer only. Attaches to [data-coingame-field].
@@ -204,6 +209,7 @@ export function CoinCatch({
       el.removeEventListener('touchend', onTouchEnd)
       el.removeEventListener('touchcancel', onTouchEnd)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCoarsePointer]) // POT_W covered transitively via isCoarsePointer
 
   // Game loop. Non-reduced: rAF with real dt. Reduced: small base interval
@@ -356,6 +362,7 @@ export function CoinCatch({
       cancelAnimationFrame(raf)
       document.removeEventListener('visibilitychange', onVisibility)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced, playerTopY]) // playerTopY covers all isCoarsePointer-derived values
 
   const livesLeft = MAX_MISSES - misses

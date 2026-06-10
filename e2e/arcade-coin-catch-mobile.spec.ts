@@ -8,8 +8,11 @@ import { test, expect, type Page } from '@playwright/test';
 // NOTE: must run against a production build (see playwright.config.ts).
 
 // Skip all tests in this file when not running under the iPhone 14 project.
-// test.skip at file level doesn't receive testInfo — use beforeEach instead.
-test.beforeEach(({}, testInfo) => {
+// Playwright requires beforeEach's first arg to be a non-empty object destructure;
+// browserName is destructured (satisfies no-empty-pattern) and the _-prefixed
+// alias is intentionally unused (Playwright API constraint).
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+test.beforeEach(({ browserName: _bn }, testInfo) => {
   test.skip(
     testInfo.project.name !== 'mobile-iphone-14',
     'Coin Catch mobile tests need the iPhone 14 project (hasTouch + pointer:coarse).',
@@ -56,7 +59,7 @@ test.describe('Arcade Coin Catch — mobile sheet (Task #78)', () => {
 
   test('attract phase shows TAP TO START on mobile', async ({ page }) => {
     await openOverlay(page);
-    await expect(page.locator('text=TAP TO START')).toBeVisible();
+    await expect(page.getByText('TAP TO START')).toBeVisible();
   });
 
   test('pad portal slot is present while overlay is open', async ({ page }) => {
@@ -153,7 +156,7 @@ test.describe('Arcade Coin Catch — landscape rotate card (Task #78)', () => {
     await page.setViewportSize({ width: 844, height: 390 }); // landscape iPhone 14
     await page.goto('/#arcade');
     await page.locator('[data-arcade-insert-coin]').click();
-    await expect(page.locator('text=ROTATE PHONE')).toBeVisible();
+    await expect(page.getByText('ROTATE PHONE')).toBeVisible();
     await expect(page.locator('[data-coingame-field]')).toHaveCount(0);
   });
 });

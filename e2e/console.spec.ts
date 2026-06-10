@@ -30,8 +30,8 @@ test.describe('Console', () => {
     await page.goto('/#console');
     const ticker = page.locator('[data-ticker="sessions"]');
     const a = await ticker.textContent();
-    await page.waitForTimeout(1400);
-    expect(await ticker.textContent()).not.toEqual(a);
+    // Poll until the ticker text changes — avoids a fixed wait.
+    await expect.poll(() => ticker.textContent(), { timeout: 3000 }).not.toEqual(a);
   });
   test('reduced-motion: ticker frozen', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
@@ -39,8 +39,13 @@ test.describe('Console', () => {
     await page.goto('/#console');
     const ticker = page.locator('[data-ticker="sessions"]');
     const a = await ticker.textContent();
-    await page.waitForTimeout(1400);
-    expect(await ticker.textContent()).toEqual(a);
+    // Deliberate sampling loop — not expect.poll. expect.poll asserts a condition
+    // BECOMES true; asserting a value NEVER changes requires repeated sampling.
+    // Verify text stays constant across several polls over ~1.2 s.
+    for (let i = 0; i < 4; i++) {
+      await page.waitForTimeout(300);
+      expect(await ticker.textContent()).toEqual(a);
+    }
     await context.close();
   });
   test('SMART Machine active-route pulse animates (non-reduced motion)', async ({ page }) => {

@@ -7,16 +7,6 @@ import { test, expect } from '@playwright/test';
 
 const MOBILE_VIEWPORT = { width: 375, height: 667 }; // iPhone SE
 
-/** Set scrollTop and dispatch scroll event atomically in the same evaluate context. */
-async function scrollTo(page: import('@playwright/test').Page, scrollTop: number) {
-  await page.evaluate((top) => {
-    const el = document.querySelector('[data-shell-scroller]') as HTMLElement | null;
-    if (!el) return;
-    el.scrollTop = top;
-    el.dispatchEvent(new Event('scroll', { bubbles: false }));
-  }, scrollTop);
-}
-
 test.describe('Mode-pill mobile behavior (Task #43)', () => {
 
   test('pill starts collapsed on mobile and shows active-direction label when expanded', async ({ page }) => {
@@ -83,10 +73,13 @@ test.describe('Mode-pill mobile behavior (Task #43)', () => {
 
 test.describe('BottomSheet primitive (Task #43)', () => {
 
-  test('sheet opens and displays content', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
     });
+  });
+
+  test('sheet opens and displays content', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
 
@@ -99,9 +92,6 @@ test.describe('BottomSheet primitive (Task #43)', () => {
   });
 
   test('sheet closes via close button', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -112,9 +102,6 @@ test.describe('BottomSheet primitive (Task #43)', () => {
   });
 
   test('sheet closes via backdrop tap', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -128,10 +115,10 @@ test.describe('BottomSheet primitive (Task #43)', () => {
     await expect(page.locator('[data-bottom-sheet]')).toHaveCount(0);
   });
 
-  test('sheet dismisses via pointer-drag past 30% of sheet height', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
+  test('sheet dismisses via pointer-drag past 30% of sheet height', async ({ page, isMobile }) => {
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(String(e)));
+
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -142,23 +129,39 @@ test.describe('BottomSheet primitive (Task #43)', () => {
     const box = await sheet.boundingBox();
     expect(box).not.toBeNull();
 
-    // Drag down past 30% of sheet height (pointer events fire on mouse drag)
     const startX = box!.x + box!.width / 2;
     const startY = box!.y + 40; // near top of sheet (below drag handle)
     const swipeDistance = Math.ceil(box!.height * 0.35); // 35% — past threshold
 
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX, startY + swipeDistance, { steps: 10 });
-    await page.mouse.up();
+    if (isMobile) {
+      // Touch emulation: use touchscreen swipe so pointer events fire correctly.
+      await page.touchscreen.tap(startX, startY);
+      await page.evaluate(({ sx, sy, ey }: { sx: number; sy: number; ey: number }) => {
+        const el = document.querySelector('[data-bottom-sheet]') as HTMLElement | null;
+        if (!el) return;
+        const steps = 10;
+        el.dispatchEvent(new PointerEvent('pointerdown', { clientX: sx, clientY: sy, bubbles: true, pointerId: 1 }));
+        for (let i = 1; i <= steps; i++) {
+          const y = sy + ((ey - sy) * i) / steps;
+          el.dispatchEvent(new PointerEvent('pointermove', { clientX: sx, clientY: y, bubbles: true, pointerId: 1 }));
+        }
+        el.dispatchEvent(new PointerEvent('pointerup', { clientX: sx, clientY: ey, bubbles: true, pointerId: 1 }));
+      }, { sx: startX, sy: startY, ey: startY + swipeDistance });
+    } else {
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(startX, startY + swipeDistance, { steps: 10 });
+      await page.mouse.up();
+    }
 
     await expect(sheet).toHaveCount(0);
+    expect(errors).toEqual([]);
   });
 
-  test('sheet snap-back: drag less than 30% does NOT dismiss', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
+  test('sheet snap-back: drag less than 30% does NOT dismiss', async ({ page, isMobile }) => {
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(String(e)));
+
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -173,19 +176,32 @@ test.describe('BottomSheet primitive (Task #43)', () => {
     const startY = box!.y + 40;
     const swipeDistance = Math.floor(box!.height * 0.15); // 15% — below threshold
 
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX, startY + swipeDistance, { steps: 5 });
-    await page.mouse.up();
+    if (isMobile) {
+      // Touch emulation: dispatch pointer events directly so the drag delta is precise.
+      await page.evaluate(({ sx, sy, ey }: { sx: number; sy: number; ey: number }) => {
+        const el = document.querySelector('[data-bottom-sheet]') as HTMLElement | null;
+        if (!el) return;
+        const steps = 5;
+        el.dispatchEvent(new PointerEvent('pointerdown', { clientX: sx, clientY: sy, bubbles: true, pointerId: 1 }));
+        for (let i = 1; i <= steps; i++) {
+          const y = sy + ((ey - sy) * i) / steps;
+          el.dispatchEvent(new PointerEvent('pointermove', { clientX: sx, clientY: y, bubbles: true, pointerId: 1 }));
+        }
+        el.dispatchEvent(new PointerEvent('pointerup', { clientX: sx, clientY: ey, bubbles: true, pointerId: 1 }));
+      }, { sx: startX, sy: startY, ey: startY + swipeDistance });
+    } else {
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(startX, startY + swipeDistance, { steps: 5 });
+      await page.mouse.up();
+    }
 
     // Sheet should still be present
     await expect(sheet).toBeVisible();
+    expect(errors).toEqual([]);
   });
 
   test('sheet has drag handle', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -194,9 +210,6 @@ test.describe('BottomSheet primitive (Task #43)', () => {
   });
 
   test('sheet closes on Escape key', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
