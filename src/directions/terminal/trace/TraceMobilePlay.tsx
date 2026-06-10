@@ -83,9 +83,10 @@ export function TraceMobilePlay({ puzzle, onEnd }: {
   puzzle: Puzzle
   onEnd:  (result: 'win' | 'loss', path: string[]) => void
 }) {
-  const [game,  setGame]  = useState<Game>(() => createGame(puzzle))
-  const [draft, setDraft] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [game,          setGame]          = useState<Game>(() => createGame(puzzle))
+  const [draft,         setDraft]         = useState('')
+  const [error,         setError]         = useState<string | null>(null)
+  const [moveAnnounce,  setMoveAnnounce]  = useState('')
 
   const inputRef   = useRef<HTMLInputElement>(null)
   const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -111,7 +112,13 @@ export function TraceMobilePlay({ puzzle, onEnd }: {
     setGame(next)
     setDraft('')
     setError(null)
-    if (next.status !== 'playing') {
+    // Mirror desktop TraceGame announcement strings exactly
+    if (next.status === 'playing') {
+      setMoveAnnounce(`${draft.toUpperCase()} accepted — ${next.movesLeft} moves left`)
+    } else {
+      setMoveAnnounce(next.status === 'won'
+        ? `${draft.toUpperCase()} — route resolved`
+        : `${draft.toUpperCase()} — connection dropped`)
       onEnd(next.status === 'won' ? 'win' : 'loss', next.path)
     }
   }
@@ -128,6 +135,14 @@ export function TraceMobilePlay({ puzzle, onEnd }: {
       onClick={() => inputRef.current?.focus()}
       style={{ padding: '4px 16px 24px' }}
     >
+      {/* Visually-hidden polite live region — mirrors desktop TraceGame pattern */}
+      <div aria-live="polite" aria-atomic="true" style={{
+        position: 'absolute', width: 1, height: 1, overflow: 'hidden',
+        clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap',
+      }}>
+        {moveAnnounce}
+      </div>
+
       {/* moves-left HUD */}
       <div style={{ ...mono, fontSize: 11, letterSpacing: '0.08em', color: 'var(--term-fg-dim)', marginBottom: 12 }}>
         moves left{' '}
