@@ -23,6 +23,7 @@ import { useState } from 'react'
 import { JX_PROJECTS, JX_MANIFESTO, JX_CONTACT, JX_FOOTER } from '../data/jxData'
 import { JynaxxWordmark } from '../components/brand/ConsoleWordmark'
 import { useMediaQuery } from './parts/useMediaQuery'
+import { useFontFamilies } from './parts/useFontFamilies'
 import { SectionHeader } from './parts/SectionHeader'
 import { HudBar, HudCounters } from './console/HudBar'
 import { Hero } from './console/Hero'
@@ -45,6 +46,8 @@ const publicProjects = JX_PROJECTS.filter(p => p.group === 'public')
 const workshopProjects = JX_PROJECTS.filter(p => p.group === 'workshop')
 
 export default function Console() {
+  // Space Grotesk is Console-only — inject lazily on first mount.
+  useFontFamilies('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap')
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   // Single shared open-id across manifest + workbench (matches reference:
   // opening one collapses any other).
