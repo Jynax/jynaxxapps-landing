@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import defaultContent from '../src/data/defaultContent';
+import { defaultContent } from '../src/data/defaultContent';
 
 // A realistic-looking base64 token (timestamp:email:hmac).
 // The mount-time validation GET is mocked to 200 so the token is never rejected.

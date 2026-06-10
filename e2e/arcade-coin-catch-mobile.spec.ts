@@ -8,13 +8,11 @@ import { test, expect, type Page } from '@playwright/test';
 // NOTE: must run against a production build (see playwright.config.ts).
 
 // Skip all tests in this file when not running under the iPhone 14 project.
-// test.skip at file level doesn't receive testInfo — use beforeEach instead.
-test.beforeEach((_fixtures, testInfo) => {
-  test.skip(
-    testInfo.project.name !== 'mobile-iphone-14',
-    'Coin Catch mobile tests need the iPhone 14 project (hasTouch + pointer:coarse).',
-  );
-});
+// test.skip with a condition function (Playwright 1.49+) receives fixtures without
+// needing testInfo, avoiding the no-empty-pattern / no-unused-vars lint constraints.
+test.skip(({ project }) => project.name !== 'mobile-iphone-14',
+  'Coin Catch mobile tests need the iPhone 14 project (hasTouch + pointer:coarse).',
+);
 
 async function getPlayerX(page: Page): Promise<number> {
   const transform = await page
