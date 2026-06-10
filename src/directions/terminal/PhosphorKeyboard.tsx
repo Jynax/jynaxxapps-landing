@@ -252,9 +252,14 @@ export function PhosphorKeyboard({
   const active = activeChar ? normalize(activeChar) : ''
 
   return (
+    // Outer wrapper: owns position:relative + visual styles.
+    // aria-hidden is NOT here — moving it to the inner key-rows div so the
+    // ? button (a sibling of that div) is visible to assistive technology.
+    // Axe rule "focusable-but-hidden": a child's aria-hidden="false" cannot
+    // override an ancestor's aria-hidden="true", so the button must live
+    // outside the hidden subtree.
     <div
       data-phosphor-keyboard
-      aria-hidden="true"
       style={{
         display: 'inline-block', // shrink-wrap — spacebar fix anchor
         marginTop: 14,
@@ -264,31 +269,33 @@ export function PhosphorKeyboard({
         position: 'relative',
       }}
     >
-      {ROWS.map((row, r) => (
-        <div
-          key={r}
-          style={{
-            display: 'flex',
-            gap: 4,
-            marginTop: r === 0 ? 0 : 4,
-            // canonical per-row QWERTY stagger
-            paddingLeft: row.offset,
-          }}
-        >
-          {row.keys.split('').map(ch => (
-            <Key key={ch} label={ch} lit={active === ch} />
-          ))}
+      {/* Key rows + spacebar: purely decorative, hide from AT */}
+      <div aria-hidden="true">
+        {ROWS.map((row, r) => (
+          <div
+            key={r}
+            style={{
+              display: 'flex',
+              gap: 4,
+              marginTop: r === 0 ? 0 : 4,
+              // canonical per-row QWERTY stagger
+              paddingLeft: row.offset,
+            }}
+          >
+            {row.keys.split('').map(ch => (
+              <Key key={ch} label={ch} lit={active === ch} />
+            ))}
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+          <Key label="SPACE" lit={active === 'SPACE'} wide />
         </div>
-      ))}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
-        <Key label="SPACE" lit={active === 'SPACE'} wide />
       </div>
 
-      {/* Hidden daily puzzle trigger — dim ? at bottom-right of the keyboard */}
+      {/* ? button — sibling of the hidden key rows, so AT can see it */}
       {onOpenPuzzle && (
         <button
           type="button"
-          aria-hidden="false"
           aria-label="Open daily word puzzle"
           data-trace-open
           onClick={onOpenPuzzle}
