@@ -97,7 +97,14 @@ test.describe('TRACE mobile bottom sheet (Task #48)', () => {
 
 test.describe('TRACE desktop — unchanged (Task #48)', () => {
 
-  test('? opens the centered modal on desktop, not a bottom sheet', async ({ page }) => {
+  test('? opens the centered modal on desktop, not a bottom sheet', async ({ page, isMobile }) => {
+    // Skip on the mobile-iphone-14/WebKit project: this test asserts desktop
+    // (non-bottom-sheet) behaviour by overriding the viewport to 1280×900.
+    // Under WebKit's touch-emulation context the viewport resize doesn't settle
+    // before the click stability check, causing intermittent 30s timeouts under
+    // parallel load. The test runs correctly on the chromium project (spec also
+    // matches **/*-mobile via testMatch because the describe name implies mobile).
+    test.skip(isMobile, 'Desktop-behaviour guard — skip in WebKit touch context; covered by chromium project');
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await seedTrace(page);
     await page.goto('/#terminal');
