@@ -34,10 +34,15 @@ jobs:
               }
             }
 
+            let parsedUrl;
             try {
-              new URL(payload.projectUrl);
+              parsedUrl = new URL(payload.projectUrl);
             } catch {
               core.setFailed(`Invalid projectUrl: ${payload.projectUrl}`);
+              return;
+            }
+            if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+              core.setFailed(`projectUrl must use http or https: ${payload.projectUrl}`);
               return;
             }
 
