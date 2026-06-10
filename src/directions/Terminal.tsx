@@ -7,7 +7,7 @@
 // Mobile (§M.1–§M.5): container padding 28px 20px 96px; 4-line boot log at 70ms
 // cadence; CRT header stacked; ASCII title 22px; help rows 44px touch targets.
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { JX_PROJECTS, JX_FOOTER } from '../data/jxData'
 import { JynaxxWordmark } from '../components/brand/Wordmark'
 import { Prompt } from './parts/Prompt'
@@ -23,7 +23,9 @@ import { ProjectListing } from './terminal/ProjectListing'
 import { ManifestoBox } from './terminal/ManifestoBox'
 import { ContactBlock } from './terminal/ContactBlock'
 import { CursorPrompt } from './terminal/CursorPrompt'
-import { TraceOverlay } from './terminal/trace/TraceOverlay'
+const TraceOverlay = lazy(() =>
+  import('./terminal/trace/TraceOverlay').then(m => ({ default: m.TraceOverlay }))
+)
 
 /**
  * Block 3 — boot log. The 7 vintage POST self-test lines below are reproduced
@@ -349,7 +351,11 @@ export default function Terminal() {
         </footer>
       </div>
 
-      {traceOpen && <TraceOverlay onClose={() => setTraceOpen(false)} />}
+      {traceOpen && (
+        <Suspense fallback={null}>
+          <TraceOverlay onClose={() => setTraceOpen(false)} />
+        </Suspense>
+      )}
     </section>
   )
 }
