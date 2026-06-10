@@ -146,3 +146,49 @@ test.describe('liveStore — type field', () => {
     if (!r.ok) expect(r.error).toMatch(/type/i);
   });
 });
+
+// ── Input caps (Task #94) ────────────────────────────────────────────────────
+
+test.describe('liveStore — input caps', () => {
+  test('rejects activity over 200 chars', () => {
+    const long = 'a'.repeat(201);
+    const r = validatePayload({ activity: long });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/activity/i);
+  });
+
+  test('accepts activity exactly at 200 chars', () => {
+    const exact = 'a'.repeat(200);
+    const r = validatePayload({ activity: exact });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.activity).toBe(exact);
+  });
+
+  test('rejects since over 40 chars', () => {
+    const long = 's'.repeat(41);
+    const r = validatePayload({ activity: 'x', since: long });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/since/i);
+  });
+
+  test('accepts since exactly at 40 chars', () => {
+    const exact = 's'.repeat(40);
+    const r = validatePayload({ activity: 'x', since: exact });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.since).toBe(exact);
+  });
+
+  test('rejects project over 100 chars', () => {
+    const long = 'p'.repeat(101);
+    const r = validatePayload({ activity: 'x', project: long });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/project/i);
+  });
+
+  test('accepts project exactly at 100 chars', () => {
+    const exact = 'p'.repeat(100);
+    const r = validatePayload({ activity: 'x', project: exact });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.project).toBe(exact);
+  });
+});

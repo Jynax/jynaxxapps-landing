@@ -1,3 +1,5 @@
+import { timingSafeEqual, createHmac } from './_crypto'
+
 interface Env {
   CONTENT: KVNamespace
   SESSION_SECRET: string
@@ -5,18 +7,23 @@ interface Env {
 
 const CONTENT_KEY = 'site-content'
 
+// 64 KB cap on PUT body (defense against oversized writes to KV).
+const MAX_BODY_BYTES = 64 * 1024
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const stored = await context.env.CONTENT.get(CONTENT_KEY, 'text')
 
   if (!stored) {
     return new Response(JSON.stringify(null), {
       status: 404,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }
 
+  // Public GET 200: no Cache-Control was set previously; add no-store to avoid
+  // admin content being cached in shared caches or CDN edge nodes.
   return new Response(stored, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   })
 }
 
@@ -26,7 +33,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }
 
@@ -36,11 +43,31 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   if (!valid) {
     return new Response(JSON.stringify({ error: 'Invalid token' }), {
       status: 403,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }
 
+  // Check Content-Length header first (fast path).
+  const contentLengthHeader = context.request.headers.get('Content-Length')
+  if (contentLengthHeader !== null) {
+    const declared = parseInt(contentLengthHeader, 10)
+    if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: 'Payload too large' }), {
+        status: 413,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      })
+    }
+  }
+
   const body = await context.request.text()
+
+  // Defense against missing or spoofed Content-Length: verify actual length.
+  if (new TextEncoder().encode(body).length > MAX_BODY_BYTES) {
+    return new Response(JSON.stringify({ error: 'Payload too large' }), {
+      status: 413,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }
 
   // Validate it's valid JSON
   try {
@@ -48,14 +75,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }
 
   await context.env.CONTENT.put(CONTENT_KEY, body)
 
   return new Response(JSON.stringify({ ok: true }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   })
 }
 
@@ -80,31 +107,4 @@ async function verifyToken(token: string, secret: string): Promise<boolean> {
   } catch {
     return false
   }
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  const enc = new TextEncoder()
-  const ab = enc.encode(a)
-  const bb = enc.encode(b)
-  if (ab.length !== bb.length) return false
-  let diff = 0
-  for (let i = 0; i < ab.length; i++) {
-    diff |= ab[i] ^ bb[i]
-  }
-  return diff === 0
-}
-
-async function createHmac(data: string, key: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(key),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  const sig = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(data))
-  return Array.from(new Uint8Array(sig))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
 }

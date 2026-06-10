@@ -6,6 +6,11 @@ import type { LiveFeedEntry } from '../../src/types/jx';
 export const CAP = 3;
 export const TTL_MS = 24 * 60 * 60 * 1000;
 
+// Input caps — keep field lengths reasonable for storage and display.
+const MAX_ACTIVITY_CHARS = 200; // display cap; practical entries are ≤ 40 chars
+const MAX_SINCE_CHARS = 40;     // short relative label ("today", "this week", etc.)
+const MAX_PROJECT_CHARS = 100;  // project name / slug
+
 type Source = LiveFeedEntry['source'];
 const SOURCES: readonly Source[] = ['wcc', 'lcc'];
 
@@ -32,6 +37,9 @@ export function validatePayload(payload: unknown): ValidateResult {
 
   const activity = typeof p.activity === 'string' ? p.activity.trim() : '';
   if (!activity) return { ok: false, error: 'activity is required' };
+  if (activity.length > MAX_ACTIVITY_CHARS) {
+    return { ok: false, error: `activity must be ${MAX_ACTIVITY_CHARS} characters or fewer` };
+  }
 
   if ('publicSafe' in p && p.publicSafe !== true) {
     return { ok: false, error: 'publicSafe must be true or omitted' };
@@ -55,12 +63,24 @@ export function validatePayload(payload: unknown): ValidateResult {
     return { ok: false, error: 'type must be "work" or "eod"' };
   }
 
+  // since: cap length if provided
+  const since = typeof p.since === 'string' && p.since ? p.since : 'today';
+  if (since.length > MAX_SINCE_CHARS) {
+    return { ok: false, error: `since must be ${MAX_SINCE_CHARS} characters or fewer` };
+  }
+
+  // project: cap length if provided
+  const project = typeof p.project === 'string' && p.project ? p.project : null;
+  if (project !== null && project.length > MAX_PROJECT_CHARS) {
+    return { ok: false, error: `project must be ${MAX_PROJECT_CHARS} characters or fewer` };
+  }
+
   return {
     ok: true,
     value: {
       activity,
-      project: typeof p.project === 'string' && p.project ? p.project : null,
-      since: typeof p.since === 'string' && p.since ? p.since : 'today',
+      project,
+      since,
       source,
       type,
     },
