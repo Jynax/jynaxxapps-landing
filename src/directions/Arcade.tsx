@@ -28,10 +28,6 @@ import { useMediaQuery } from './parts/useMediaQuery'
 import { useFontFamilies } from './parts/useFontFamilies'
 import { ARC, CART_ACCENTS, accentAt, fmt } from './arcade/tokens'
 import { Starfield as StarfieldBase } from './arcade/Starfield'
-
-// Starfield has no props and never changes — memo prevents it from re-rendering
-// when parent state changes (e.g. blink timer ticks in leaf components).
-const Starfield = memo(StarfieldBase)
 import { PlayerSprite } from './arcade/PlayerSprite'
 import { Cartridge } from './arcade/Cartridge'
 import { CartDossier } from './arcade/CartDossier'
@@ -41,6 +37,10 @@ import { ArcadeLiveStrip, ArcadeScoreboard } from './arcade/ArcadeLiveStrip'
 import { CoinGameOverlay } from './arcade/coingame/CoinGameOverlay'
 import { ARCADE_GAMES } from './arcade/coingame/games'
 import { JynaxxAppsLockup, JynaxxWordmark } from '../components/brand/ArcadeWordmark'
+
+// Starfield has no props and never changes — memo prevents it from re-rendering
+// when parent state changes (e.g. blink timer ticks in leaf components).
+const Starfield = memo(StarfieldBase)
 
 const px   = { fontFamily: 'var(--font-pixel)' }
 const mono = { fontFamily: 'var(--font-mono)' }
@@ -131,10 +131,10 @@ function InsertCoinButton({ onOpen }: { onOpen: () => void }) {
         border: isDesktop ? 'none' : `2px solid ${ARC.neon3}`,
         padding: isDesktop ? 4 : '14px 32px',
         cursor: 'pointer',
-        width: isDesktop ? undefined : 'auto',
-        minWidth: isDesktop ? undefined : 220,
-        height: isDesktop ? undefined : 'auto',
-        display: isDesktop ? undefined : 'inline-flex',
+        width: isDesktop ? undefined : '100%',
+        boxSizing: isDesktop ? undefined : 'border-box' as const,
+        minHeight: isDesktop ? undefined : 64,
+        display: isDesktop ? undefined : 'flex',
         alignItems: isDesktop ? undefined : 'center',
         justifyContent: isDesktop ? undefined : 'center',
       }}

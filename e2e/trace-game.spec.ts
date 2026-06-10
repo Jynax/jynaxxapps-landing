@@ -44,8 +44,10 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     await page.goto('/#terminal');
     await page.locator('[data-trace-open]').click();
 
-    await page.keyboard.press('Enter');
+    // Wait for the lazy chunk to mount before pressing Enter.
     const overlay = page.locator('[data-trace-overlay]');
+    await expect(overlay).toBeVisible();
+    await page.keyboard.press('Enter');
     await expect(overlay).toHaveAttribute('data-trace-phase', 'playing');
     await expect(page.locator('[data-trace-game]')).toBeVisible();
 
@@ -66,6 +68,7 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     });
     await page.goto('/#terminal');
     await page.locator('[data-trace-open]').click();
+    await expect(page.locator('[data-trace-overlay]')).toBeVisible();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-trace-game]')).toBeVisible();
 
@@ -92,6 +95,7 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     });
     await page.goto('/#terminal');
     await page.locator('[data-trace-open]').click();
+    await expect(page.locator('[data-trace-overlay]')).toBeVisible();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-trace-game]')).toBeVisible();
 
@@ -129,6 +133,7 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     });
     await page.goto('/#terminal');
     await page.locator('[data-trace-open]').click();
+    await expect(page.locator('[data-trace-overlay]')).toBeVisible();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-trace-game]')).toBeVisible();
 
@@ -148,6 +153,7 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     });
     await page.goto('/#terminal');
     await page.locator('[data-trace-open]').click();
+    await expect(page.locator('[data-trace-overlay]')).toBeVisible();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-trace-game]')).toBeVisible();
 
@@ -194,6 +200,7 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     });
     await page.goto('/#terminal');
     await page.locator('[data-trace-open]').click();
+    await expect(page.locator('[data-trace-overlay]')).toBeVisible();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-trace-game]')).toBeVisible();
 
@@ -222,6 +229,7 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     });
     await page.goto('/#terminal');
     await page.locator('[data-trace-open]').click();
+    await expect(page.locator('[data-trace-overlay]')).toBeVisible();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-trace-game]')).toBeVisible();
 
@@ -249,6 +257,7 @@ test.describe('TRACE word-puzzle in Terminal (Task #40)', () => {
     });
     await page.goto('/#terminal');
     await page.locator('[data-trace-open]').click();
+    await expect(page.locator('[data-trace-overlay]')).toBeVisible();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-trace-game]')).toBeVisible();
 
