@@ -119,7 +119,7 @@ test.describe('BottomSheet primitive (Task #43)', () => {
     await expect(page.locator('[data-bottom-sheet]')).toHaveCount(0);
   });
 
-  test('sheet dismisses via pointer-drag past 30% of sheet height', async ({ page }) => {
+  test('sheet dismisses via pointer-drag past 30% of sheet height', async ({ page, isMobile }) => {
     await page.addInitScript(() => {
       (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
     });
@@ -133,20 +133,35 @@ test.describe('BottomSheet primitive (Task #43)', () => {
     const box = await sheet.boundingBox();
     expect(box).not.toBeNull();
 
-    // Drag down past 30% of sheet height (pointer events fire on mouse drag)
     const startX = box!.x + box!.width / 2;
     const startY = box!.y + 40; // near top of sheet (below drag handle)
     const swipeDistance = Math.ceil(box!.height * 0.35); // 35% — past threshold
 
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX, startY + swipeDistance, { steps: 10 });
-    await page.mouse.up();
+    if (isMobile) {
+      // Touch emulation: use touchscreen swipe so pointer events fire correctly.
+      await page.touchscreen.tap(startX, startY);
+      await page.evaluate(({ sx, sy, ey }: { sx: number; sy: number; ey: number }) => {
+        const el = document.querySelector('[data-bottom-sheet]') as HTMLElement | null;
+        if (!el) return;
+        const steps = 10;
+        el.dispatchEvent(new PointerEvent('pointerdown', { clientX: sx, clientY: sy, bubbles: true, pointerId: 1 }));
+        for (let i = 1; i <= steps; i++) {
+          const y = sy + ((ey - sy) * i) / steps;
+          el.dispatchEvent(new PointerEvent('pointermove', { clientX: sx, clientY: y, bubbles: true, pointerId: 1 }));
+        }
+        el.dispatchEvent(new PointerEvent('pointerup', { clientX: sx, clientY: ey, bubbles: true, pointerId: 1 }));
+      }, { sx: startX, sy: startY, ey: startY + swipeDistance });
+    } else {
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(startX, startY + swipeDistance, { steps: 10 });
+      await page.mouse.up();
+    }
 
     await expect(sheet).toHaveCount(0);
   });
 
-  test('sheet snap-back: drag less than 30% does NOT dismiss', async ({ page }) => {
+  test('sheet snap-back: drag less than 30% does NOT dismiss', async ({ page, isMobile }) => {
     await page.addInitScript(() => {
       (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
     });
@@ -164,10 +179,25 @@ test.describe('BottomSheet primitive (Task #43)', () => {
     const startY = box!.y + 40;
     const swipeDistance = Math.floor(box!.height * 0.15); // 15% — below threshold
 
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX, startY + swipeDistance, { steps: 5 });
-    await page.mouse.up();
+    if (isMobile) {
+      // Touch emulation: dispatch pointer events directly so the drag delta is precise.
+      await page.evaluate(({ sx, sy, ey }: { sx: number; sy: number; ey: number }) => {
+        const el = document.querySelector('[data-bottom-sheet]') as HTMLElement | null;
+        if (!el) return;
+        const steps = 5;
+        el.dispatchEvent(new PointerEvent('pointerdown', { clientX: sx, clientY: sy, bubbles: true, pointerId: 1 }));
+        for (let i = 1; i <= steps; i++) {
+          const y = sy + ((ey - sy) * i) / steps;
+          el.dispatchEvent(new PointerEvent('pointermove', { clientX: sx, clientY: y, bubbles: true, pointerId: 1 }));
+        }
+        el.dispatchEvent(new PointerEvent('pointerup', { clientX: sx, clientY: ey, bubbles: true, pointerId: 1 }));
+      }, { sx: startX, sy: startY, ey: startY + swipeDistance });
+    } else {
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(startX, startY + swipeDistance, { steps: 5 });
+      await page.mouse.up();
+    }
 
     // Sheet should still be present
     await expect(sheet).toBeVisible();
