@@ -93,15 +93,12 @@ export function CoinCatch({
   const playerTopY = FIELD_H - POT_H
 
   // Resolve [data-coingame-pad-slot] for portal rendering (#76 contract).
-  // setState called inside a setTimeout callback (not the synchronous effect
-  // body) to satisfy react-hooks/set-state-in-effect; the slot element is
-  // guaranteed to be in the DOM once the overlay is open, so a 0ms defer is safe.
+  // The slot element is rendered by the parent overlay before this child effect
+  // runs; one-shot resolve, no cascade.
   useEffect(() => {
     if (!isCoarsePointer) return
-    const id = setTimeout(() => {
-      setPadSlotEl(document.querySelector('[data-coingame-pad-slot]'))
-    }, 0)
-    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPadSlotEl(document.querySelector('[data-coingame-pad-slot]'))
   }, [isCoarsePointer])
 
   // Window-capture key handler. Capture phase ensures LiveShell's 1–4 switcher
