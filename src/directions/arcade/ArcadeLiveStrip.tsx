@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { LiveFeed } from '../parts/useLiveFeed'
 import { useMediaQuery } from '../parts/useMediaQuery'
+import { useBlink } from '../parts/useBlink'
 import { ARC, ACCENT_VIOLET, fmt } from './tokens'
 import { ArcadePlayerScene } from './ArcadePlayerScene'
 import { useStats } from './useStats'
@@ -23,17 +24,15 @@ function updatedLabel(iso: string): string {
 // #26 swaps only the data source, not this UI.
 export function ArcadeLiveStrip({
   feed,
-  blink,
-  coinBlink,
   gameOpen,
   reduced,
 }: {
   feed: LiveFeed
-  blink: boolean
-  coinBlink: boolean
   gameOpen?: boolean
   reduced: boolean
 }) {
+  const blink = useBlink(420)
+  const coinBlink = useBlink(900)
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const channel = `${(feed.index + 1).toString().padStart(2, '0')}/${feed.total

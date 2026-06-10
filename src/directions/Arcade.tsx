@@ -18,14 +18,16 @@
 // `reduced` gate (#24 pattern). CSS transitions/animations are covered by the
 // global tokens.css reduced-motion rule.
 
-import { useState, Fragment } from 'react'
+import { useState, Fragment, memo } from 'react'
+import type { CSSProperties } from 'react'
 import { JX_PROJECTS, JX_MANIFESTO } from '../data/jxData'
 import { useBlink } from './parts/useBlink'
 import { useReducedMotion } from './parts/useReducedMotion'
 import { useLiveFeed } from './parts/useLiveFeed'
 import { useMediaQuery } from './parts/useMediaQuery'
+import { useFontFamilies } from './parts/useFontFamilies'
 import { ARC, CART_ACCENTS, accentAt, fmt } from './arcade/tokens'
-import { Starfield } from './arcade/Starfield'
+import { Starfield as StarfieldBase } from './arcade/Starfield'
 import { PlayerSprite } from './arcade/PlayerSprite'
 import { Cartridge } from './arcade/Cartridge'
 import { CartDossier } from './arcade/CartDossier'
@@ -35,6 +37,10 @@ import { ArcadeLiveStrip, ArcadeScoreboard } from './arcade/ArcadeLiveStrip'
 import { CoinGameOverlay } from './arcade/coingame/CoinGameOverlay'
 import { ARCADE_GAMES } from './arcade/coingame/games'
 import { JynaxxAppsLockup, JynaxxWordmark } from '../components/brand/ArcadeWordmark'
+
+// Starfield has no props and never changes — memo prevents it from re-rendering
+// when parent state changes (e.g. blink timer ticks in leaf components).
+const Starfield = memo(StarfieldBase)
 
 const px   = { fontFamily: 'var(--font-pixel)' }
 const mono = { fontFamily: 'var(--font-mono)' }
@@ -88,16 +94,77 @@ function fmtHiDate(iso: string): string {
   return m ? `${m[1].slice(2)}.${m[2]}.${m[3]}` : iso
 }
 
-export default function Arcade() {
-  const reduced = useReducedMotion()
+// ── Leaf blink components ────────────────────────────────────────────────────
+// Timers live only in these leaves so root Arcade and the heavy subtree
+// (Starfield, cart grid, dossier) are not forced through render+diff per tick.
+
+/** HI-SCORE value — blinks at 420 ms cadence */
+function HiScoreValue({ score }: { score: number }) {
   const blink = useBlink(420)
+  return (
+    <span style={{ color: ARC.ink, opacity: blink ? 1 : 0.4 }}>{fmt(score)}</span>
+  )
+}
+
+/** INSERT COIN button — blinks at 900 ms cadence on desktop */
+function InsertCoinButton({ onOpen }: { onOpen: () => void }) {
   const coin = useBlink(900)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const [insertActive, setInsertActive] = useState(false)
+  return (
+    <button
+      type="button"
+      data-arcade-insert-coin
+      onClick={onOpen}
+      onPointerDown={() => { if (!isDesktop) setInsertActive(true) }}
+      onPointerUp={() => setInsertActive(false)}
+      onPointerLeave={() => setInsertActive(false)}
+      aria-label="Insert coin — play a hidden mini-game"
+      style={{
+        fontFamily: 'var(--font-pixel)',
+        fontSize: isDesktop ? 9 : 18,
+        color: ARC.neon3,
+        marginTop: 16,
+        opacity: isDesktop ? (coin ? 1 : 0.2) : 1,
+        letterSpacing: '0.2em',
+        background: !isDesktop && insertActive ? '#FFE63622' : 'transparent',
+        border: isDesktop ? 'none' : `2px solid ${ARC.neon3}`,
+        padding: isDesktop ? 4 : '14px 32px',
+        cursor: 'pointer',
+        width: isDesktop ? undefined : '100%',
+        boxSizing: isDesktop ? undefined : 'border-box' as const,
+        minHeight: isDesktop ? undefined : 64,
+        display: isDesktop ? undefined : 'flex',
+        alignItems: isDesktop ? undefined : 'center',
+        justifyContent: isDesktop ? undefined : 'center',
+      }}
+    >
+      ◇ INSERT COIN ◇
+    </button>
+  )
+}
+
+/** Footer tagline — blinks at 420 ms cadence */
+function GameOverTagline({ style }: { style?: CSSProperties }) {
+  const blink = useBlink(420)
+  return (
+    <div style={{ ...px, ...style, opacity: blink ? 1 : 0.2 }}>
+      GAME OVER? NEVER
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
+export default function Arcade() {
+  // Press Start 2P + VT323 are Arcade-only — inject lazily on first mount.
+  useFontFamilies('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap')
+  const reduced = useReducedMotion()
   const feed = useLiveFeed()
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [selectedId, setSelectedId] = useState<string | null>('cyberdeck')
   const select = (id: string) => setSelectedId(prev => (prev === id ? null : id))
   const [coinOpen, setCoinOpen] = useState(false)
-  const [insertActive, setInsertActive] = useState(false)
   const [gameIndex, setGameIndex] = useState(0)
   const [hi, setHi] = useState<HiScore>(readStoredHi)
   const recordScore = (s: number) => {
@@ -171,7 +238,7 @@ export default function Arcade() {
             1UP &nbsp; <span style={{ color: ARC.ink }}>JYNAXX</span>
           </span>
           <span style={{ color: ARC.neon2 }}>
-            HI-SCORE &nbsp; <span style={{ color: ARC.ink, opacity: blink ? 1 : 0.4 }}>{fmt(hi.score)}</span>
+            HI-SCORE &nbsp; <HiScoreValue score={hi.score} />
             {hi.date && (
               <span data-arcade-hiscore-date style={{ color: ARC.dim, marginLeft: 6 }}>
                 · {fmtHiDate(hi.date)}
@@ -183,9 +250,8 @@ export default function Arcade() {
           </span>
         </div>
 
-        {/* Piece 7: prop rename coin → coinBlink + new gameOpen prop */}
         {/* Live feed — collapsable row directly under the HUD */}
-        <ArcadeLiveStrip feed={feed} blink={blink} coinBlink={coin} gameOpen={coinOpen} reduced={reduced} />
+        <ArcadeLiveStrip feed={feed} gameOpen={coinOpen} reduced={reduced} />
 
         {/* Piece 2: Big title — type sizes mobile-branched */}
         <div style={{ textAlign: 'center', marginTop: 28, position: 'relative' }}>
@@ -217,35 +283,7 @@ export default function Arcade() {
             </div>
           )}
           {/* Piece 3: INSERT COIN trigger — full-width 64px on mobile with yellow border */}
-          <button
-            type="button"
-            data-arcade-insert-coin
-            onClick={() => setCoinOpen(true)}
-            onPointerDown={() => { if (!isDesktop) setInsertActive(true) }}
-            onPointerUp={() => setInsertActive(false)}
-            onPointerLeave={() => setInsertActive(false)}
-            aria-label="Insert coin — play a hidden mini-game"
-            style={{
-              ...px,
-              fontSize: isDesktop ? 9 : 18,
-              color: ARC.neon3,
-              marginTop: 16,
-              opacity: isDesktop ? (coin ? 1 : 0.2) : 1,
-              letterSpacing: '0.2em',
-              background: !isDesktop && insertActive ? '#FFE63622' : 'transparent',
-              border: isDesktop ? 'none' : `2px solid ${ARC.neon3}`,
-              padding: isDesktop ? 4 : '14px 32px',
-              cursor: 'pointer',
-              width: isDesktop ? undefined : 'auto',
-              minWidth: isDesktop ? undefined : 220,
-              height: isDesktop ? undefined : 'auto',
-              display: isDesktop ? undefined : 'inline-flex',
-              alignItems: isDesktop ? undefined : 'center',
-              justifyContent: isDesktop ? undefined : 'center',
-            }}
-          >
-            ◇ INSERT COIN ◇
-          </button>
+          <InsertCoinButton onOpen={() => setCoinOpen(true)} />
         </div>
 
         {/* Piece 5: Mobile scoreboard mount-point — standalone between INSERT COIN and cart grid */}
@@ -423,9 +461,7 @@ export default function Arcade() {
             <div>{'built with claude · cursor · curiosity'}</div>
             <div>made in canada</div>
           </div>
-          <div style={{ ...px, fontSize: 9, color: ARC.neon1, marginTop: 16, letterSpacing: '0.15em', opacity: blink ? 1 : 0.2 }}>
-            GAME OVER? NEVER
-          </div>
+          <GameOverTagline style={{ fontSize: 9, color: ARC.neon1, marginTop: 16, letterSpacing: '0.15em' }} />
         </div>
       </div>
 

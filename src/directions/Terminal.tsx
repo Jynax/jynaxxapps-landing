@@ -7,7 +7,7 @@
 // Mobile (§M.1–§M.5): container padding 28px 20px 96px; 4-line boot log at 70ms
 // cadence; CRT header stacked; ASCII title 22px; help rows 44px touch targets.
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense, Component, type ReactNode } from 'react'
 import { JX_PROJECTS, JX_FOOTER } from '../data/jxData'
 import { JynaxxWordmark } from '../components/brand/Wordmark'
 import { Prompt } from './parts/Prompt'
@@ -23,7 +23,21 @@ import { ProjectListing } from './terminal/ProjectListing'
 import { ManifestoBox } from './terminal/ManifestoBox'
 import { ContactBlock } from './terminal/ContactBlock'
 import { CursorPrompt } from './terminal/CursorPrompt'
-import { TraceOverlay } from './terminal/trace/TraceOverlay'
+const TraceOverlay = lazy(() =>
+  import('./terminal/trace/TraceOverlay').then(m => ({ default: m.TraceOverlay }))
+)
+
+// Error boundary: a failed dynamic import (partial deploy / interrupted fetch) must
+// not propagate to the root and unmount the app — render null so the overlay simply
+// doesn't appear while leaving the terminal fully functional.
+class TraceErrorBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+  static getDerivedStateFromError(): { failed: boolean } { return { failed: true } }
+  render(): ReactNode { return this.state.failed ? null : this.props.children }
+}
 
 /**
  * Block 3 — boot log. The 7 vintage POST self-test lines below are reproduced
@@ -87,6 +101,7 @@ export default function Terminal() {
   const isMobile = useIsMobile()
   const reduced = useReducedMotion()
   const [traceOpen, setTraceOpen] = useState(false)
+  const [traceAttempt, setTraceAttempt] = useState(0)
 
   // Mobile help row pressed state (§M.5): rgba amber bg for 120ms on tap.
   const [pressedCmd, setPressedCmd] = useState<string | null>(null)
@@ -278,7 +293,7 @@ export default function Terminal() {
 
         {/* 6 — tail -f /var/log/jynaxx/now (live feed) */}
         <div style={section} data-term-section="now">
-          <LiveNow onOpenPuzzle={() => setTraceOpen(true)} paused={traceOpen} />
+          <LiveNow onOpenPuzzle={() => { setTraceOpen(true); setTraceAttempt(a => a + 1) }} paused={traceOpen} />
         </div>
 
         {/* 7 — ls -la ~/apps/ (6 public) */}
@@ -349,7 +364,13 @@ export default function Terminal() {
         </footer>
       </div>
 
-      {traceOpen && <TraceOverlay onClose={() => setTraceOpen(false)} />}
+      {traceOpen && (
+        <TraceErrorBoundary key={traceAttempt}>
+          <Suspense fallback={null}>
+            <TraceOverlay onClose={() => setTraceOpen(false)} />
+          </Suspense>
+        </TraceErrorBoundary>
+      )}
     </section>
   )
 }
