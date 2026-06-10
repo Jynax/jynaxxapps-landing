@@ -39,6 +39,8 @@ test.describe('Console', () => {
     await page.goto('/#console');
     const ticker = page.locator('[data-ticker="sessions"]');
     const a = await ticker.textContent();
+    // Deliberate sampling loop — not expect.poll. expect.poll asserts a condition
+    // BECOMES true; asserting a value NEVER changes requires repeated sampling.
     // Verify text stays constant across several polls over ~1.2 s.
     for (let i = 0; i < 4; i++) {
       await page.waitForTimeout(300);
