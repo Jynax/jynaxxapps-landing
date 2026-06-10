@@ -56,7 +56,13 @@ export function BottomSheet({
     isDragging.current = true
     const sheet = sheetRef.current
     if (sheet) {
-      sheet.setPointerCapture(e.pointerId)
+      try {
+        // Synthetic PointerEvents (e.g. dispatched via page.evaluate in tests) and some
+        // engines lack pointer-capture support — drag still works via the ref flags.
+        sheet.setPointerCapture(e.pointerId)
+      } catch {
+        // ignore InvalidPointerId / NotSupportedError
+      }
       sheet.style.transition = 'none'
     }
   }
