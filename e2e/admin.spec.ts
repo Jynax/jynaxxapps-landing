@@ -83,16 +83,16 @@ test.describe('Admin — authenticated CMS editor (mocked API)', () => {
       localStorage.setItem('jynaxx-admin-token', token);
     }, FAKE_TOKEN);
 
-    // Validation GET returns 200; content GET returns 404 (no content stored yet).
-    let callCount = 0;
+    // Route on the request, not on arrival order (callCount is race-prone).
+    // useAdminAuth.ts:23 — token-validation GET includes Authorization: Bearer <token>.
+    // Admin.tsx:22       — content-fetch GET has no Authorization header.
     await page.route('**/api/content', async (route) => {
       if (route.request().method() === 'GET') {
-        callCount++;
-        if (callCount === 1) {
-          // First call: mount-time token validation — return 200 to keep token valid.
+        if (route.request().headers()['authorization']) {
+          // Token-validation call — return 200 to keep token valid.
           await route.fulfill({ status: 200, contentType: 'application/json', body: 'null' });
         } else {
-          // Second call: content fetch — simulate 404 (nothing in KV yet).
+          // Content-fetch call — simulate 404 (nothing in KV yet).
           await route.fulfill({ status: 404, contentType: 'application/json', body: 'null' });
         }
       } else {
@@ -185,6 +185,7 @@ test.describe('Admin — authenticated CMS editor (mocked API)', () => {
     await expect(page.locator('.admin-save-msg')).toContainText('Session expired');
 
     // After logout the login form should be visible (token cleared).
-    await expect(page.locator('.admin-login-card')).toBeVisible();
+    // logout is delayed 1500 ms by Admin.tsx so the message renders first.
+    await expect(page.locator('.admin-login-card')).toBeVisible({ timeout: 4000 });
   });
 });
