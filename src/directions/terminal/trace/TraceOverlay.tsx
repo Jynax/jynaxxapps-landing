@@ -14,6 +14,7 @@ import { isLockedToday, loadState, recordResult } from './traceStorage'
 import type { TraceState } from './traceStorage'
 import { formatShare } from './traceShare'
 import { useReducedMotion } from '../../parts/useReducedMotion'
+import { useFocusTrap } from '../../parts/useFocusTrap'
 import { TraceGame } from './TraceGame'
 import { TraceMobilePlay } from './TraceMobilePlay'
 import { BottomSheet } from '../../../shell/BottomSheet'
@@ -91,6 +92,9 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
     if (!mobile) panelRef.current?.focus()
     return () => prev?.focus()
   }, [mobile])
+
+  // Focus trap: Tab/Shift+Tab cycle within the desktop panel only.
+  useFocusTrap(panelRef, !mobile)
 
   // Global key handler: ESC always closes; ENTER advances from attract/over.
   // 1–4 keys suppressed so the LiveShell direction switcher can't fire.

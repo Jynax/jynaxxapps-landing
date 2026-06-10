@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { useFocusTrap } from '../directions/parts/useFocusTrap'
 
 interface BottomSheetProps {
   open: boolean
@@ -27,6 +28,9 @@ export function BottomSheet({
   const dragStartYRef = useRef(0)
   const dragCurrentYRef = useRef(0)
   const isDragging = useRef(false)
+
+  // Focus trap: Tab/Shift+Tab cycle within the sheet panel.
+  useFocusTrap(sheetRef, open)
 
   // Lock page scroll while sheet is open
   useEffect(() => {

@@ -14,6 +14,7 @@ import { ARC } from '../tokens'
 import { ARCADE_GAMES } from './games'
 import { useArcadePlays } from './useArcadePlays'
 import { useMediaQuery } from '../../parts/useMediaQuery'
+import { useFocusTrap } from '../../parts/useFocusTrap'
 
 type Phase = 'attract' | 'playing' | 'over'
 
@@ -69,6 +70,9 @@ export function CoinGameOverlay({
     panelRef.current?.focus()
     return () => prev?.focus()
   }, [])
+
+  // Focus trap: Tab/Shift+Tab cycle within the panel.
+  useFocusTrap(panelRef, true)
 
   // Meta keys (window-capture so they never reach LiveShell's 1–4 switcher).
   // Space/Enter only act outside of play; Escape always closes.
