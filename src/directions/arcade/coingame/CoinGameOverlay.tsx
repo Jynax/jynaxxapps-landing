@@ -14,6 +14,7 @@ import { ARC } from '../tokens'
 import { ARCADE_GAMES } from './games'
 import { useArcadePlays } from './useArcadePlays'
 import { useMediaQuery } from '../../parts/useMediaQuery'
+import { useFocusTrap } from '../../parts/useFocusTrap'
 
 type Phase = 'attract' | 'playing' | 'over'
 
@@ -45,6 +46,10 @@ export function CoinGameOverlay({
   useEffect(() => {
     phaseRef.current = phase
   }, [phase])
+  // overlayRef covers the full overlay surface (close button + panel), so the
+  // focus trap contains every interactive element. panelRef still points to the
+  // inner panel for initial-focus purposes.
+  const overlayRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   // Pad portal target ref — #77 queries [data-coingame-pad-slot] via querySelector/createPortal
   const padSlotRef = useRef<HTMLDivElement>(null)
@@ -69,6 +74,11 @@ export function CoinGameOverlay({
     panelRef.current?.focus()
     return () => prev?.focus()
   }, [])
+
+  // Focus trap: Tab/Shift+Tab cycle within the full overlay surface (outer div),
+  // so the [data-coingame-close] button — which is a DOM sibling before the
+  // panel div — is included in the containment check.
+  useFocusTrap(overlayRef, true)
 
   // Meta keys (window-capture so they never reach LiveShell's 1–4 switcher).
   // Space/Enter only act outside of play; Escape always closes.
@@ -125,6 +135,7 @@ export function CoinGameOverlay({
       `}</style>
 
       <div
+        ref={overlayRef}
         data-arcade-coingame
         data-coingame-state={phase}
         role="dialog"
