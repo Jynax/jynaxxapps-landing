@@ -7,7 +7,6 @@ import { test, expect } from '@playwright/test';
 
 const MOBILE_VIEWPORT = { width: 375, height: 667 }; // iPhone SE
 
-
 test.describe('Mode-pill mobile behavior (Task #43)', () => {
 
   test('pill starts collapsed on mobile and shows active-direction label when expanded', async ({ page }) => {
@@ -74,10 +73,13 @@ test.describe('Mode-pill mobile behavior (Task #43)', () => {
 
 test.describe('BottomSheet primitive (Task #43)', () => {
 
-  test('sheet opens and displays content', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
     });
+  });
+
+  test('sheet opens and displays content', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
 
@@ -90,9 +92,6 @@ test.describe('BottomSheet primitive (Task #43)', () => {
   });
 
   test('sheet closes via close button', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -103,9 +102,6 @@ test.describe('BottomSheet primitive (Task #43)', () => {
   });
 
   test('sheet closes via backdrop tap', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -120,9 +116,9 @@ test.describe('BottomSheet primitive (Task #43)', () => {
   });
 
   test('sheet dismisses via pointer-drag past 30% of sheet height', async ({ page, isMobile }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(String(e)));
+
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -159,12 +155,13 @@ test.describe('BottomSheet primitive (Task #43)', () => {
     }
 
     await expect(sheet).toHaveCount(0);
+    expect(errors).toEqual([]);
   });
 
   test('sheet snap-back: drag less than 30% does NOT dismiss', async ({ page, isMobile }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(String(e)));
+
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -201,12 +198,10 @@ test.describe('BottomSheet primitive (Task #43)', () => {
 
     // Sheet should still be present
     await expect(sheet).toBeVisible();
+    expect(errors).toEqual([]);
   });
 
   test('sheet has drag handle', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
@@ -215,9 +210,6 @@ test.describe('BottomSheet primitive (Task #43)', () => {
   });
 
   test('sheet closes on Escape key', async ({ page }) => {
-    await page.addInitScript(() => {
-      (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ = true;
-    });
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto('/');
     await page.locator('[data-test-sheet-open]').click();
