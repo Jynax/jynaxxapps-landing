@@ -112,13 +112,15 @@ export function TraceMobilePlay({ puzzle, onEnd }: {
     setGame(next)
     setDraft('')
     setError(null)
-    // Mirror desktop TraceGame announcement strings exactly
+    // Only announce accepted words while the game is still in progress.
+    // Win/loss announcements are handled by TraceOverlay's persistent
+    // aria-live sibling region (which survives unmount of this component).
+    // Duplicating them here races the over-phase unmount and confuses
+    // screen readers with two competing regions.
     if (next.status === 'playing') {
       setMoveAnnounce(`${draft.toUpperCase()} accepted — ${next.movesLeft} moves left`)
-    } else {
-      setMoveAnnounce(next.status === 'won'
-        ? `${draft.toUpperCase()} — route resolved`
-        : `${draft.toUpperCase()} — connection dropped`)
+    }
+    if (next.status !== 'playing') {
       onEnd(next.status === 'won' ? 'win' : 'loss', next.path)
     }
   }
@@ -176,7 +178,15 @@ export function TraceMobilePlay({ puzzle, onEnd }: {
       </div>
 
       {/* Hidden OS-keyboard input wrapped in a form so the soft keyboard's
-          Go/Return key submits. Off-screen but focusable (not display:none). */}
+          Go/Return key submits. Visually hidden but still focusable via
+          inputRef.current?.focus() — tabIndex={-1} removes it from the Tab
+          cycle (the focus trap would otherwise stop here for sighted keyboard
+          users), while programmatic .focus() still works as required for the
+          mobile soft-keyboard flow.
+          CSS uses the standard visually-hidden pattern (position:absolute +
+          clip) instead of position:fixed so that offsetParent remains non-null,
+          which lets the focus-trap's visible-element filter also exclude it via
+          the tabIndex=-1 getAttribute check. */}
       <form onSubmit={e => { e.preventDefault(); handleSubmit() }} style={{ margin: 0 }}>
         <input
           ref={inputRef}
@@ -191,8 +201,17 @@ export function TraceMobilePlay({ puzzle, onEnd }: {
           maxLength={5}
           value={draft.toUpperCase()}
           onChange={onChange}
+          tabIndex={-1}
           aria-label="Type your next word, five letters"
-          style={{ position: 'fixed', left: -9999, top: 0, width: 1, height: 1, opacity: 0 }}
+          style={{
+            position: 'absolute',
+            width: 1, height: 1,
+            padding: 0, margin: -1,
+            overflow: 'hidden',
+            clip: 'rect(0,0,0,0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
         />
         <button
           type="submit"

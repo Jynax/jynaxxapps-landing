@@ -38,10 +38,14 @@ test.describe('Mobile TRACE accepted-word announcements (Item 3)', () => {
     await page.locator('[data-tail-strip] [data-trace-open]').click();
     await expect(page.locator('[data-trace-sheet]')).toBeVisible();
 
-    // TraceOverlay renders a visually-hidden aria-live="polite" region at mount
-    // (sibling of the BottomSheet, for over-phase announcements). Count >= 1.
-    const liveRegions = page.locator('[aria-live="polite"]');
-    await expect(liveRegions).toHaveCount(1);
+    // TraceOverlay renders a visually-hidden aria-live="polite" region as a
+    // DOM sibling immediately before [data-bottom-sheet-root] (React fragment
+    // renders them into the same parent). Confirm via parentElement adjacency.
+    const hasSiblingLiveRegion = await page.locator('[data-bottom-sheet-root]').evaluate(el => {
+      const prev = el.previousElementSibling;
+      return prev !== null && prev.getAttribute('aria-live') === 'polite';
+    });
+    expect(hasSiblingLiveRegion).toBe(true);
   });
 
   test('submitting a valid word populates the live region with accepted announcement', async ({ page }) => {
@@ -51,13 +55,13 @@ test.describe('Mobile TRACE accepted-word announcements (Item 3)', () => {
     await page.locator('[data-trace-hidden-input]').fill('share', { force: true });
     await page.locator('[data-trace-submit]').click();
 
-    // The live region should announce the accepted word
+    // The live region inside TraceMobilePlay announces the accepted word.
     const liveRegion = page.locator('[data-trace-mobile-playing] [aria-live="polite"]');
     await expect(liveRegion).toContainText('SHARE');
     await expect(liveRegion).toContainText('accepted');
   });
 
-  test('winning the game populates the play-phase live region with resolved announcement', async ({ page }) => {
+  test('winning the game announces via TraceOverlay persistent region (not TraceMobilePlay)', async ({ page }) => {
     await openMobileAndPlay(page);
 
     // Win in 3 moves: share → shore → shone
@@ -66,12 +70,15 @@ test.describe('Mobile TRACE accepted-word announcements (Item 3)', () => {
       await page.locator('[data-trace-submit]').click();
     }
 
-    // The TraceMobilePlay live region (inside [data-trace-mobile-playing]) should
-    // announce the win via the move-announce pattern. After the last submit the
-    // component may unmount (phase=over) — check the region before that happens
-    // OR check the sheet-level over-phase announcer.
-    // Use a flexible locator: any aria-live="polite" on the page with "resolved".
-    await expect(page.locator('[aria-live="polite"]').filter({ hasText: /resolved/i })).toHaveCount(1);
+    // After the final submit TraceMobilePlay unmounts (phase → over).
+    // The win/loss announcement comes from TraceOverlay's persistent
+    // aria-live sibling region, scoped to the TRACE region parent so we
+    // don't pick up unrelated live regions on the page.
+    // The region's parent is the React fragment root of the mobile render
+    // path — locate it as the parent of [data-bottom-sheet-root].
+    const traceRegion = page.locator('[data-bottom-sheet-root]').locator('..');
+    const persistentAnnouncer = traceRegion.locator('[aria-live="polite"]');
+    await expect(persistentAnnouncer).toContainText(/route resolved/i);
   });
 });
 
@@ -88,14 +95,14 @@ test.describe('Focus trap — BottomSheet (Item 2, mobile)', () => {
 
     // Focus the last focusable element inside the sheet, then Tab — should wrap to first.
     const focusableCount = await sheet.evaluate(container => {
-      const sel = 'a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])';
+      const sel = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
       return container.querySelectorAll(sel).length;
     });
     expect(focusableCount).toBeGreaterThan(0);
 
     // Focus the last focusable inside the sheet directly (bypassing Tab to get there)
     await sheet.evaluate(container => {
-      const sel = 'a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])';
+      const sel = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
       const els = Array.from(container.querySelectorAll<HTMLElement>(sel));
       els[els.length - 1].focus();
     });
