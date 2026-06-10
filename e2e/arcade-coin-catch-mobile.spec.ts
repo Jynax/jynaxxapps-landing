@@ -9,7 +9,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 // Skip all tests in this file when not running under the iPhone 14 project.
 // test.skip at file level doesn't receive testInfo — use beforeEach instead.
-test.beforeEach(({}, testInfo) => {
+test.beforeEach((_fixtures, testInfo) => {
   test.skip(
     testInfo.project.name !== 'mobile-iphone-14',
     'Coin Catch mobile tests need the iPhone 14 project (hasTouch + pointer:coarse).',

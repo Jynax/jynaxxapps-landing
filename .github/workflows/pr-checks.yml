@@ -15,7 +15,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Lint
-        run: npm run lint 2>/dev/null || echo "No lint script found, skipping"
+        run: npm run lint
       - name: Type check
         run: npx tsc --noEmit
       - name: Build

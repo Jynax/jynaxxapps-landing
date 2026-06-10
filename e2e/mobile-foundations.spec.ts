@@ -7,15 +7,6 @@ import { test, expect } from '@playwright/test';
 
 const MOBILE_VIEWPORT = { width: 375, height: 667 }; // iPhone SE
 
-/** Set scrollTop and dispatch scroll event atomically in the same evaluate context. */
-async function scrollTo(page: import('@playwright/test').Page, scrollTop: number) {
-  await page.evaluate((top) => {
-    const el = document.querySelector('[data-shell-scroller]') as HTMLElement | null;
-    if (!el) return;
-    el.scrollTop = top;
-    el.dispatchEvent(new Event('scroll', { bubbles: false }));
-  }, scrollTop);
-}
 
 test.describe('Mode-pill mobile behavior (Task #43)', () => {
 
