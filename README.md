@@ -31,3 +31,5 @@ npm run lint
 npx tsc --noEmit
 npm run test:e2e      # Playwright
 ```
+
+The `e2e/admin.spec.ts` file covers the logged-out gate and four authenticated CMS scenarios (content load, 404 fallback, successful save, expired-session 401) using `page.route` mocks and a pre-seeded localStorage token. No deployed environment is required.
