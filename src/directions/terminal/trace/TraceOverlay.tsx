@@ -187,11 +187,11 @@ function MobileOverBody({ overData, puzzle, shareBlock, countdownLine }: MobileO
         <div style={{ ...mono, fontSize: 10, letterSpacing: '0.1em', color: 'var(--term-fg-dim)', marginBottom: 6 }}>
           your route:
         </div>
-        {overData.path.map((word) => (
-          <div key={word} style={{
+        {overData.path.map((word, i) => (
+          <div key={`${i}-${word}`} style={{
             ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
-            color:      word === overData.path[0] ? 'var(--term-fg-dim)' : 'var(--term-accent)',
-            textShadow: word === overData.path[0] ? 'none'               : 'var(--term-glow)',
+            color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
+            textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
           }}>
             {word.toUpperCase()}
           </div>
@@ -204,11 +204,11 @@ function MobileOverBody({ overData, puzzle, shareBlock, countdownLine }: MobileO
           <div style={{ ...mono, fontSize: 10, letterSpacing: '0.1em', color: 'var(--term-fg-dim)', marginBottom: 6 }}>
             one route (par {puzzle.par}):
           </div>
-          {overData.route.map((word) => (
-            <div key={word} style={{
+          {overData.route.map((word, i) => (
+            <div key={`${i}-${word}`} style={{
               ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
-              color:      word === overData.route![0] ? 'var(--term-fg-dim)' : 'var(--term-accent)',
-              textShadow: word === overData.route![0] ? 'none'               : 'var(--term-glow)',
+              color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
+              textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
             }}>
               {word.toUpperCase()}
             </div>
@@ -608,11 +608,11 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
               <div style={{ ...mono, fontSize: 10, letterSpacing: '0.1em', color: 'var(--term-fg-dim)', marginBottom: 6 }}>
                 your route:
               </div>
-              {overData.path.map((word) => (
-                <div key={word} style={{
+              {overData.path.map((word, i) => (
+                <div key={`${i}-${word}`} style={{
                   ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
-                  color:      word === overData.path[0] ? 'var(--term-fg-dim)' : 'var(--term-accent)',
-                  textShadow: word === overData.path[0] ? 'none'               : 'var(--term-glow)',
+                  color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
+                  textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
                 }}>
                   {word.toUpperCase()}
                 </div>
@@ -625,11 +625,11 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
                 <div style={{ ...mono, fontSize: 10, letterSpacing: '0.1em', color: 'var(--term-fg-dim)', marginBottom: 6 }}>
                   one route (par {puzzle.par}):
                 </div>
-                {overData.route.map((word) => (
-                  <div key={word} style={{
+                {overData.route.map((word, i) => (
+                  <div key={`${i}-${word}`} style={{
                     ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
-                    color:      word === overData.route![0] ? 'var(--term-fg-dim)' : 'var(--term-accent)',
-                    textShadow: word === overData.route![0] ? 'none'               : 'var(--term-glow)',
+                    color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
+                    textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
                   }}>
                     {word.toUpperCase()}
                   </div>
