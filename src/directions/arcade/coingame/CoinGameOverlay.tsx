@@ -121,20 +121,7 @@ export function CoinGameOverlay({
   const newHigh = phase === 'over' && lastScore > hiScore
 
   return (
-    <>
-      {/* CSS keyframes for mobile sheet slide-in and TAP TO START pulse */}
-      <style>{`
-        @keyframes coingame-slide-in {
-          from { transform: translateY(100%); }
-          to   { transform: translateY(0); }
-        }
-        @keyframes coingame-tap-pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.55; }
-        }
-      `}</style>
-
-      <div
+    <div
         ref={overlayRef}
         data-arcade-coingame
         data-coingame-state={phase}
@@ -601,7 +588,6 @@ export function CoinGameOverlay({
             }}
           />
         )}
-      </div>
-    </>
+    </div>
   )
 }
