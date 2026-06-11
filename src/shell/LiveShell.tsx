@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState, useCallback } from 'react'
+import { Suspense, lazy, startTransition, useEffect, useRef, useState, useCallback } from 'react'
 import type { ReactElement } from 'react'
 import { useDirectionRoute, STORAGE_KEY } from './useDirectionRoute'
 import type { DirectionId } from './useDirectionRoute'
@@ -86,7 +86,7 @@ export function LiveShell() {
 
   // Collapse pill on resize to mobile; uncollapse on desktop
   useEffect(() => {
-    setPillCollapsed(isMobile)
+    startTransition(() => setPillCollapsed(isMobile))
   }, [isMobile])
 
   // Keyboard handler: 1→terminal 2→console 3→journal 4→arcade
