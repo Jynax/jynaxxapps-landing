@@ -1,3 +1,5 @@
+import { createHmac } from './_crypto'
+
 interface Env {
   GOOGLE_CLIENT_ID: string
   ADMIN_EMAILS: string
@@ -14,6 +16,15 @@ interface GoogleTokenInfo {
   error_description?: string
 }
 
+// All auth responses must not be cached (tokens, errors alike).
+const NO_STORE = { 'Cache-Control': 'no-store' }
+
+const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...NO_STORE, ...extra },
+  })
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   let credential: string
 
@@ -21,17 +32,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const body = (await context.request.json()) as { credential?: string }
     credential = body.credential ?? ''
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid request body' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'Invalid request body' }, 400)
   }
 
   if (!credential) {
-    return new Response(JSON.stringify({ error: 'Missing credential' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'Missing credential' }, 400)
   }
 
   // Verify the Google ID token via Google's tokeninfo endpoint
@@ -40,20 +45,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   )
 
   if (!verifyRes.ok) {
-    return new Response(JSON.stringify({ error: 'Invalid Google token' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'Invalid Google token' }, 401)
   }
 
   const tokenInfo = (await verifyRes.json()) as GoogleTokenInfo
 
   // Verify audience matches our client ID
   if (tokenInfo.aud !== context.env.GOOGLE_CLIENT_ID) {
-    return new Response(JSON.stringify({ error: 'Token audience mismatch' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'Token audience mismatch' }, 401)
+  }
+
+  // Verify issuer is accounts.google.com (short or full URL form)
+  const validIssuers = ['accounts.google.com', 'https://accounts.google.com']
+  if (!validIssuers.includes(tokenInfo.iss)) {
+    return json({ error: 'Invalid token issuer' }, 401)
   }
 
   // Verify email is verified and in the allowed list
@@ -61,10 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const email = tokenInfo.email?.toLowerCase()
 
   if (tokenInfo.email_verified !== 'true' || !allowedEmails.includes(email)) {
-    return new Response(JSON.stringify({ error: 'Unauthorized account' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'Unauthorized account' }, 403)
   }
 
   // Issue a session token: base64(timestamp:email:hmac(timestamp:email, secret))
@@ -73,22 +75,5 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const signature = await createHmac(payload, context.env.SESSION_SECRET)
   const token = btoa(`${payload}:${signature}`)
 
-  return new Response(JSON.stringify({ token, email }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
-async function createHmac(data: string, key: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(key),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  const sig = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(data))
-  return Array.from(new Uint8Array(sig))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
+  return json({ token, email })
 }

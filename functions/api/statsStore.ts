@@ -3,6 +3,9 @@
 // api/stats.ts is the thin HTTP shell that delegates here. Mirrors liveStore.ts.
 import type { StatsEnvelope } from '../../src/types/jx'
 
+// Input caps — keep field lengths reasonable for storage and display.
+const MAX_SINCE_CHARS = 40; // short date label ("FEB 2026", "Jan 15, 2026", etc.)
+
 type ValidStatsPayload = {
   since: string
   projects: number
@@ -10,11 +13,12 @@ type ValidStatsPayload = {
 }
 
 // Validates the client POST body.
-// Accepts only { since: non-empty string, projects: int ≥ 0, prsMerged: int ≥ 0 }.
+// Accepts only { since: non-empty string ≤ 40 chars, projects: int ≥ 0, prsMerged: int ≥ 0 }.
 export function validatePayload(payload: unknown): payload is ValidStatsPayload {
   if (!payload || typeof payload !== 'object') return false
   const p = payload as Record<string, unknown>
   if (typeof p.since !== 'string' || !p.since.trim()) return false
+  if (p.since.length > MAX_SINCE_CHARS) return false
   if (
     typeof p.projects !== 'number' ||
     !Number.isInteger(p.projects) ||
