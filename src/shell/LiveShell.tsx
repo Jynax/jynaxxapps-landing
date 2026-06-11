@@ -1,8 +1,9 @@
-import { Suspense, lazy, useEffect, useRef, useState, useCallback } from 'react'
+import { Suspense, lazy, startTransition, useEffect, useRef, useState, useCallback } from 'react'
 import type { ReactElement } from 'react'
 import { useDirectionRoute, STORAGE_KEY } from './useDirectionRoute'
 import type { DirectionId } from './useDirectionRoute'
 import { BottomSheet } from './BottomSheet'
+import { useMediaQuery } from '../directions/parts/useMediaQuery'
 
 interface Direction {
   id: DirectionId
@@ -41,8 +42,8 @@ export function LiveShell() {
   const [hovered, setHovered] = useState<DirectionId | null>(null)
   const [expanded, setExpanded] = useState(false)
 
-  // Mobile breakpoint (<640px) — no JS useIsMobile hook; detected once + updated on resize
-  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 639px)').matches)
+  // Mobile breakpoint (<640px) — single hook, one breakpoint definition
+  const isMobile = useMediaQuery('(max-width: 639px)')
   // Mobile pill: starts collapsed; tap to expand, collapses after selection
   const [pillCollapsed, setPillCollapsed] = useState(() => window.matchMedia('(max-width: 639px)').matches)
 
@@ -50,7 +51,7 @@ export function LiveShell() {
   const showTestSheet = (window as Window & { __BOTTOM_SHEET_TEST__?: boolean }).__BOTTOM_SHEET_TEST__ === true
   const [testSheetOpen, setTestSheetOpen] = useState(false)
 
-  const currentDir = DIRECTIONS.find(d => d.id === direction)!
+  const currentDir = DIRECTIONS.find(d => d.id === direction) ?? DIRECTIONS[0]
 
   // Mobile mode-pill bottom offset. On Terminal mobile the 56px tail-strip
   // (#47, fixed bottom:0) occupies the bottom-right corner — lift the pill
@@ -83,17 +84,10 @@ export function LiveShell() {
     }
   }, [direction])
 
-  // Mobile breakpoint listener
+  // Collapse pill on resize to mobile; uncollapse on desktop
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 639px)')
-    const onChange = (e: MediaQueryListEvent) => {
-      setIsMobile(e.matches)
-      setPillCollapsed(e.matches) // collapse on mobile, uncollapse on desktop
-    }
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-
+    startTransition(() => setPillCollapsed(isMobile))
+  }, [isMobile])
 
   // Keyboard handler: 1→terminal 2→console 3→journal 4→arcade
   useEffect(() => {
@@ -235,14 +229,14 @@ export function LiveShell() {
                 background: 'rgba(8, 12, 16, 0.9)',
                 border: '1px solid rgba(255,255,255,0.10)',
                 borderRadius: 6,
-                color: (hovered ? DIRECTIONS.find(d => d.id === hovered)! : currentDir).accent,
+                color: (hovered ? (DIRECTIONS.find(d => d.id === hovered) ?? DIRECTIONS[0]) : currentDir).accent,
                 letterSpacing: '0.16em',
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
                 pointerEvents: 'none',
               }}
             >
-              {(hovered ? DIRECTIONS.find(d => d.id === hovered)! : currentDir).full}
+              {(hovered ? (DIRECTIONS.find(d => d.id === hovered) ?? DIRECTIONS[0]) : currentDir).full}
             </div>
           )}
 

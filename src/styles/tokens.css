@@ -236,6 +236,17 @@
   to   { transform: translateY(0); }
 }
 
+/* Arcade CoinGameOverlay animations */
+@keyframes coingame-slide-in {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes coingame-tap-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
 /* ───────────────────────────────────────────────────────────────────
  * Optional: reduced-motion respect. Strip the loud animations.
  * ────────────────────────────────────────────────────────────────── */

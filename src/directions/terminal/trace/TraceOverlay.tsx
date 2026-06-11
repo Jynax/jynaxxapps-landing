@@ -15,6 +15,7 @@ import type { TraceState } from './traceStorage'
 import { formatShare } from './traceShare'
 import { useReducedMotion } from '../../parts/useReducedMotion'
 import { useFocusTrap } from '../../parts/useFocusTrap'
+import { useCountdown } from '../../parts/useCountdown'
 import { TraceGame } from './TraceGame'
 import { TraceMobilePlay } from './TraceMobilePlay'
 import { BottomSheet } from '../../../shell/BottomSheet'
@@ -35,159 +36,41 @@ interface OverData {
   state:  TraceState
 }
 
-function useCountdown(): string {
-  const compute = () => {
-    const now = new Date()
-    const mn  = new Date(now); mn.setHours(24, 0, 0, 0)
-    const ms  = Math.max(0, mn.getTime() - now.getTime())
-    const h   = Math.floor(ms / 3600000)
-    const m   = Math.floor((ms % 3600000) / 60000)
-    const s   = Math.floor((ms % 60000) / 1000)
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-  }
-  const [cd, setCd] = useState(compute)
-  useEffect(() => {
-    const id = setInterval(() => setCd(compute()), 1000)
-    return () => clearInterval(id)
-  }, [])
-  return cd
+// ── Sub-component props ────────────────────────────────────────────────────────
+
+interface MobileAttractBodyProps {
+  puzzle:      Puzzle
+  locked:      boolean
+  savedState:  TraceState | null
+  shareBlock:  (text: string) => React.ReactNode
+  countdownLine: React.ReactNode
+  onBegin:     () => void
 }
 
-export function TraceOverlay({ onClose }: { onClose: () => void }) {
-  const reduced   = useReducedMotion()
-  const countdown = useCountdown()
-  const mobile    = useIsMobile()
+interface MobilePlayingBodyProps {
+  puzzle:       Puzzle
+  onEnd:        (result: 'win' | 'loss', path: string[]) => void
+}
 
-  // Computed once on mount — stable for the lifetime of this overlay instance.
-  const [{ today, puzzle, locked, savedState }] = useState<{
-    today:      Date
-    puzzle:     Puzzle
-    locked:     boolean
-    savedState: TraceState | null
-  }>(() => {
-    const to = typeof window !== 'undefined' ? window.__TRACE_TEST__ : undefined
-    const d: Date = to?.dateISO ? new Date(to.dateISO + 'T12:00:00') : new Date()
-    const p: Puzzle = to?.puzzleId !== undefined
-      ? (PUZZLES.find(q => q.id === to!.puzzleId) ?? puzzleForDate(d, PUZZLES))
-      : puzzleForDate(d, PUZZLES)
-    const lk = isLockedToday(localStorage, d)
-    return { today: d, puzzle: p, locked: lk, savedState: lk ? loadState(localStorage) : null }
-  })
+interface MobileOverBodyProps {
+  overData:      OverData
+  puzzle:        Puzzle
+  shareBlock:    (text: string) => React.ReactNode
+  countdownLine: React.ReactNode
+}
 
-  const [phase,    setPhase]    = useState<Phase>('attract')
-  const [overData, setOverData] = useState<OverData | null>(null)
-  const [copied,   setCopied]   = useState(false)
+// ── Mobile sheet body — attract phase ─────────────────────────────────────────
 
-  const panelRef        = useRef<HTMLDivElement>(null)
-  const phaseRef        = useRef<Phase>(phase)
-  const onCloseRef      = useRef(onClose)
-  const copyTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => { phaseRef.current = phase },   [phase])
-  useEffect(() => { onCloseRef.current = onClose }, [onClose])
-
-  // Focus the desktop panel on open, restore focus on close. On mobile the
-  // BottomSheet owns its surface and TraceMobilePlay focuses its own input.
-  useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null
-    if (!mobile) panelRef.current?.focus()
-    return () => prev?.focus()
-  }, [mobile])
-
-  // Focus trap: Tab/Shift+Tab cycle within the desktop panel only.
-  useFocusTrap(panelRef, !mobile)
-
-  // Global key handler: ESC always closes; ENTER advances from attract/over.
-  // 1–4 keys suppressed so the LiveShell direction switcher can't fire.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault(); e.stopPropagation()
-        onCloseRef.current(); return
-      }
-      if (e.key === 'Enter') {
-        if (phaseRef.current === 'attract' && !locked) {
-          e.preventDefault(); e.stopPropagation()
-          setPhase('playing'); return
-        }
-        if (phaseRef.current === 'over') {
-          e.preventDefault(); e.stopPropagation()
-          onCloseRef.current(); return
-        }
-      }
-      if ('1234'.includes(e.key)) e.stopPropagation()
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [locked])
-
-  const handleGameEnd = (result: 'win' | 'loss', path: string[]) => {
-    const route = result === 'loss' ? bfsShortestPath(puzzle.start, puzzle.target, WORD_SET) : null
-    recordResult(localStorage, { result, path }, today)
-    const state = loadState(localStorage)
-    setOverData({ result, path, route, state })
-    setPhase('over')
-  }
-
-  const doCopy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      const el = document.createElement('textarea')
-      el.value = text
-      el.style.cssText = 'position:fixed;opacity:0;pointer-events:none'
-      document.body.appendChild(el); el.select()
-      try { document.execCommand('copy') } catch { /* ignored */ }
-      document.body.removeChild(el)
-    }
-    setCopied(true)
-    if (copyTimer.current) clearTimeout(copyTimer.current)
-    copyTimer.current = setTimeout(() => setCopied(false), 2000)
-  }
-
-  useEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current) }, [])
-
+function MobileAttractBody({
+  puzzle,
+  locked,
+  savedState,
+  shareBlock,
+  countdownLine,
+  onBegin,
+}: MobileAttractBodyProps) {
   const mono = { fontFamily: 'var(--font-mono)' } as const
-
-  // ── Shared UI fragments ────────────────────────────────────────────────────
-
-  const countdownLine = (
-    <div style={{ ...mono, fontSize: 11, letterSpacing: '0.08em', color: 'var(--term-fg-dim)', marginTop: 18 }}>
-      next route in{' '}
-      <span style={{ color: 'var(--term-fg)', fontVariantNumeric: 'tabular-nums' }}>
-        {countdown}
-      </span>
-    </div>
-  )
-
-  const shareBlock = (text: string) => (
-    <div style={{ marginTop: 16 }}>
-      <pre style={{
-        ...mono, fontSize: 12, lineHeight: 1.7, margin: 0,
-        color: 'var(--term-fg)', textShadow: 'var(--term-glow)',
-        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-      }}>
-        {text}
-      </pre>
-      <button
-        type="button"
-        data-trace-copy
-        onClick={() => doCopy(text)}
-        style={{
-          ...mono, marginTop: 12, fontSize: 11, letterSpacing: '0.1em',
-          color:       copied ? 'var(--term-accent)' : 'var(--term-fg-dim)',
-          background:  'transparent',
-          border:      `1px solid ${copied ? 'var(--term-accent)' : 'rgba(244,185,66,0.28)'}`,
-          padding:     '5px 14px', cursor: 'pointer',
-        }}
-      >
-        {copied ? 'copied' : 'copy'}
-      </button>
-    </div>
-  )
-
-  // ── Mobile sheet body — attract phase ─────────────────────────────────────
-
-  const mobileAttractBody = (
+  return (
     <div data-trace-attract style={{ padding: '0 16px 24px' }}>
       {/* Streak counter top-left per §M.9 */}
       {savedState && (
@@ -240,7 +123,7 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             data-trace-begin
-            onClick={() => setPhase('playing')}
+            onClick={onBegin}
             style={{
               ...mono, fontSize: 11, letterSpacing: '0.18em',
               height: 48,
@@ -256,20 +139,23 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
       )}
     </div>
   )
+}
 
-  // ── Mobile sheet body — playing phase ─────────────────────────────────────
-  //
-  // §M.9 play surface: stacked 5-tile rows + hidden OS-keyboard input. Built as
-  // a separate component because mobile soft keyboards need an <input> event
-  // model, not the hardware-keydown model the desktop TraceGame uses.
+// ── Mobile sheet body — playing phase ─────────────────────────────────────────
+//
+// §M.9 play surface: stacked 5-tile rows + hidden OS-keyboard input. Built as
+// a separate component because mobile soft keyboards need an <input> event
+// model, not the hardware-keydown model the desktop TraceGame uses.
 
-  const mobilePlayingBody = (
-    <TraceMobilePlay puzzle={puzzle} onEnd={handleGameEnd} />
-  )
+function MobilePlayingBody({ puzzle, onEnd }: MobilePlayingBodyProps) {
+  return <TraceMobilePlay puzzle={puzzle} onEnd={onEnd} />
+}
 
-  // ── Mobile sheet body — over phase ────────────────────────────────────────
+// ── Mobile sheet body — over phase ────────────────────────────────────────────
 
-  const mobileOverBody = overData && (
+function MobileOverBody({ overData, puzzle, shareBlock, countdownLine }: MobileOverBodyProps) {
+  const mono = { fontFamily: 'var(--font-mono)' } as const
+  return (
     <div style={{ padding: '0 16px 24px' }}>
       {/* Streak counter top-left §M.9 */}
       <div style={{ ...mono, fontSize: 11, letterSpacing: '0.08em', color: 'var(--term-fg-dim)', marginBottom: 12 }}>
@@ -302,7 +188,7 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
           your route:
         </div>
         {overData.path.map((word, i) => (
-          <div key={i} style={{
+          <div key={`${i}-${word}`} style={{
             ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
             color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
             textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
@@ -319,7 +205,7 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
             one route (par {puzzle.par}):
           </div>
           {overData.route.map((word, i) => (
-            <div key={i} style={{
+            <div key={`${i}-${word}`} style={{
               ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
               color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
               textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
@@ -345,6 +231,140 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
       <div style={{ ...mono, fontSize: 9, letterSpacing: '0.14em', color: 'var(--term-fg-dim)', marginTop: 16 }}>
         ESC OR SWIPE TO CLOSE
       </div>
+    </div>
+  )
+}
+
+// ── Main overlay ───────────────────────────────────────────────────────────────
+
+export function TraceOverlay({ onClose }: { onClose: () => void }) {
+  const reduced   = useReducedMotion()
+  const countdown = useCountdown()
+  const mobile    = useIsMobile()
+
+  // Computed once on mount — stable for the lifetime of this overlay instance.
+  const [{ today, puzzle, locked, savedState }] = useState<{
+    today:      Date
+    puzzle:     Puzzle
+    locked:     boolean
+    savedState: TraceState | null
+  }>(() => {
+    const to = typeof window !== 'undefined' ? window.__TRACE_TEST__ : undefined
+    const d: Date = to?.dateISO ? new Date(to.dateISO + 'T12:00:00') : new Date()
+    const p: Puzzle = to?.puzzleId !== undefined
+      ? (PUZZLES.find(q => q.id === to!.puzzleId) ?? puzzleForDate(d, PUZZLES))
+      : puzzleForDate(d, PUZZLES)
+    const lk = isLockedToday(localStorage, d)
+    return { today: d, puzzle: p, locked: lk, savedState: lk ? loadState(localStorage) : null }
+  })
+
+  const [phase,    setPhase]    = useState<Phase>('attract')
+  const [overData, setOverData] = useState<OverData | null>(null)
+  const [copied,   setCopied]   = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
+
+  const panelRef        = useRef<HTMLDivElement>(null)
+  const phaseRef        = useRef<Phase>(phase)
+  const onCloseRef      = useRef(onClose)
+  const copyTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => { phaseRef.current = phase },   [phase])
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  // Focus the desktop panel on open, restore focus on close. On mobile the
+  // BottomSheet owns its surface and TraceMobilePlay focuses its own input.
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null
+    if (!mobile) panelRef.current?.focus()
+    return () => prev?.focus()
+  }, [mobile])
+
+  // Focus trap: Tab/Shift+Tab cycle within the desktop panel only.
+  useFocusTrap(panelRef, !mobile)
+
+  // Global key handler: ESC always closes; ENTER advances from attract/over.
+  // 1–4 keys suppressed so the LiveShell direction switcher can't fire.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation()
+        onCloseRef.current(); return
+      }
+      if (e.key === 'Enter') {
+        if (phaseRef.current === 'attract' && !locked) {
+          e.preventDefault(); e.stopPropagation()
+          setPhase('playing'); return
+        }
+        if (phaseRef.current === 'over') {
+          e.preventDefault(); e.stopPropagation()
+          onCloseRef.current(); return
+        }
+      }
+      if ('1234'.includes(e.key)) e.stopPropagation()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [locked])
+
+  const handleGameEnd = (result: 'win' | 'loss', path: string[]) => {
+    const route = result === 'loss' ? bfsShortestPath(puzzle.start, puzzle.target, WORD_SET) : null
+    recordResult(localStorage, { result, path }, today)
+    const state = loadState(localStorage)
+    setOverData({ result, path, route, state })
+    setPhase('over')
+  }
+
+  // Item 2: only show COPIED feedback on actual success; show "copy manually" hint on failure.
+  const doCopy = async (text: string) => {
+    if (copyTimer.current) clearTimeout(copyTimer.current)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setCopyFailed(false)
+      copyTimer.current = setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopyFailed(true)
+      copyTimer.current = setTimeout(() => setCopyFailed(false), 2000)
+    }
+  }
+
+  useEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current) }, [])
+
+  const mono = { fontFamily: 'var(--font-mono)' } as const
+
+  // ── Shared UI fragments ────────────────────────────────────────────────────
+
+  const countdownLine = (
+    <div style={{ ...mono, fontSize: 11, letterSpacing: '0.08em', color: 'var(--term-fg-dim)', marginTop: 18 }}>
+      next route in{' '}
+      <span style={{ color: 'var(--term-fg)', fontVariantNumeric: 'tabular-nums' }}>
+        {countdown}
+      </span>
+    </div>
+  )
+
+  const shareBlock = (text: string) => (
+    <div style={{ marginTop: 16 }}>
+      <pre style={{
+        ...mono, fontSize: 12, lineHeight: 1.7, margin: 0,
+        color: 'var(--term-fg)', textShadow: 'var(--term-glow)',
+        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+      }}>
+        {text}
+      </pre>
+      <button
+        type="button"
+        data-trace-copy
+        onClick={() => doCopy(text)}
+        style={{
+          ...mono, marginTop: 12, fontSize: 11, letterSpacing: '0.1em',
+          color:       copied ? 'var(--term-accent)' : copyFailed ? 'var(--term-fg-dim)' : 'var(--term-fg-dim)',
+          background:  'transparent',
+          border:      `1px solid ${copied ? 'var(--term-accent)' : 'rgba(244,185,66,0.28)'}`,
+          padding:     '5px 14px', cursor: 'pointer',
+        }}
+      >
+        {copied ? 'copied' : copyFailed ? 'copy manually' : 'copy'}
+      </button>
     </div>
   )
 
@@ -386,9 +406,27 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
           aria-label="TRACE — daily word puzzle"
         >
           <div data-trace-sheet data-trace-phase={phase}>
-            {phase === 'attract' && mobileAttractBody}
-            {phase === 'playing' && mobilePlayingBody}
-            {phase === 'over'    && mobileOverBody}
+            {phase === 'attract' && (
+              <MobileAttractBody
+                puzzle={puzzle}
+                locked={locked}
+                savedState={savedState}
+                shareBlock={shareBlock}
+                countdownLine={countdownLine}
+                onBegin={() => setPhase('playing')}
+              />
+            )}
+            {phase === 'playing' && (
+              <MobilePlayingBody puzzle={puzzle} onEnd={handleGameEnd} />
+            )}
+            {phase === 'over' && overData && (
+              <MobileOverBody
+                overData={overData}
+                puzzle={puzzle}
+                shareBlock={shareBlock}
+                countdownLine={countdownLine}
+              />
+            )}
           </div>
         </BottomSheet>
       </>
@@ -571,7 +609,7 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
                 your route:
               </div>
               {overData.path.map((word, i) => (
-                <div key={i} style={{
+                <div key={`${i}-${word}`} style={{
                   ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
                   color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
                   textShadow: i === 0 ? 'none'               : 'var(--term-glow)',
@@ -588,7 +626,7 @@ export function TraceOverlay({ onClose }: { onClose: () => void }) {
                   one route (par {puzzle.par}):
                 </div>
                 {overData.route.map((word, i) => (
-                  <div key={i} style={{
+                  <div key={`${i}-${word}`} style={{
                     ...mono, fontSize: 16, letterSpacing: '0.25em', lineHeight: 1.4,
                     color:      i === 0 ? 'var(--term-fg-dim)' : 'var(--term-accent)',
                     textShadow: i === 0 ? 'none'               : 'var(--term-glow)',

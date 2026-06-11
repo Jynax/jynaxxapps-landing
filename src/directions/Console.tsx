@@ -265,9 +265,9 @@ export default function Console() {
             <JynaxxWordmark size={18} glow={false} />
           </div>
           <div style={{ ...mono, fontSize: 13, color: CON.dim, lineHeight: 2.2, marginBottom: 16 }}>
-            <div>jynaxx@gmail.com</div>
-            <div>github.com/Jynax</div>
-            <div>@mrchartrand.bsky.social</div>
+            {JX_CONTACT.filter(c => c.kind !== 'rss').map(c => (
+              <div key={c.kind}>{c.value}</div>
+            ))}
           </div>
           <div style={{ ...mono, fontSize: 12, color: CON.dim, lineHeight: 2 }}>
             <div>{JX_FOOTER.copyright}</div>

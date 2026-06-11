@@ -20,7 +20,7 @@
 
 import { useState, Fragment, memo } from 'react'
 import type { CSSProperties } from 'react'
-import { JX_PROJECTS, JX_MANIFESTO } from '../data/jxData'
+import { JX_PROJECTS, JX_MANIFESTO, JX_CONTACT, JX_FOOTER } from '../data/jxData'
 import { useBlink } from './parts/useBlink'
 import { useReducedMotion } from './parts/useReducedMotion'
 import { useLiveFeed } from './parts/useLiveFeed'
@@ -452,14 +452,14 @@ export default function Arcade() {
             <JynaxxWordmark size={18} glow={false} />
           </div>
           <div style={{ ...mono, fontSize: 13, color: ARC.dim, lineHeight: 2.2, marginBottom: 16 }}>
-            <div>jynaxx@gmail.com</div>
-            <div>github.com/Jynax</div>
-            <div>@mrchartrand.bsky.social</div>
+            {JX_CONTACT.filter(c => c.kind !== 'rss').map(c => (
+              <div key={c.kind}>{c.value}</div>
+            ))}
           </div>
           <div style={{ ...mono, fontSize: 12, color: ARC.dim, lineHeight: 2 }}>
-            <div>{'© 2024–2026 jynaxx · all rights reversed'}</div>
-            <div>{'built with claude · cursor · curiosity'}</div>
-            <div>made in canada</div>
+            <div>{JX_FOOTER.copyright}</div>
+            <div>{JX_FOOTER.built}</div>
+            <div>{JX_FOOTER.made}</div>
           </div>
           <GameOverTagline style={{ fontSize: 9, color: ARC.neon1, marginTop: 16, letterSpacing: '0.15em' }} />
         </div>
