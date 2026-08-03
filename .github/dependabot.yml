@@ -6,6 +6,14 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    # typescript-eslint's peer range caps TypeScript at <6.1.0, so a major
+    # bump to TypeScript 7 makes `npm ci` unresolvable and takes the whole
+    # dev-dependencies group down with it. Hold TypeScript on 6.x minors and
+    # patches until typescript-eslint ships TS 7 support upstream, then drop
+    # this ignore and let the major through.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       dev-dependencies:
         dependency-type: "development"
