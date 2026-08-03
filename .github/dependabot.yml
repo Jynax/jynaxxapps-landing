@@ -6,8 +6,20 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    # typescript-eslint's peer range caps TypeScript at <6.1.0, so a major bump
+    # to TypeScript 7 makes the tree unresolvable. Hold TypeScript on 6.x until
+    # typescript-eslint ships TS 7 support upstream, then drop this ignore.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    # Group only minor + patch bumps. Majors are deliberately left ungrouped so
+    # each arrives as its own PR: a major that breaks resolution then fails on
+    # its own instead of taking every other bump in the group down with it.
+    # That is exactly how PR #107 stalled 11 good updates for three weeks.
     groups:
       dev-dependencies:
         dependency-type: "development"
+        update-types: ["minor", "patch"]
       production-dependencies:
         dependency-type: "production"
+        update-types: ["minor", "patch"]
